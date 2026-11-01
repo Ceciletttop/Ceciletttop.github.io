@@ -22,7 +22,7 @@
 .about-kicker{margin:0 0 24px;font:10px/1.5 var(--mono);letter-spacing:.15em;color:var(--muted)}
 .about-greeting{margin:0;font-family:InterHero,Arial,sans-serif;font-size:clamp(127.4px,13.65vw,234px);font-weight:500;line-height:.95;letter-spacing:-.075em;color:var(--ink)}
 .about-greeting>span{display:block;margin-top:15.6px;font-size:.61em;line-height:1.15;letter-spacing:-.065em;white-space:nowrap}
-.about-meta{--about-info-muted:#aaa;display:grid;grid-template-columns:32% 40.6% 27.4%;column-gap:0;zoom:.49;width:43.12%;max-width:2116px;margin:60px auto 0;text-align:left}
+.about-meta{--about-info-muted:#aaa;display:grid;grid-template-columns:32% 40.6% 27.4%;column-gap:0;zoom:.49;width:43.12%;max-width:2116px;margin:78px auto 0;text-align:left}
 .about-meta>section{min-width:0}
 .about-block-title{display:block;padding:0;margin:0 0 clamp(12px,.8vw,20px);background:none;font-family:Arial,Helvetica,sans-serif;font-size:clamp(20px,2.568vw,64px);font-weight:700;line-height:1.2;letter-spacing:0;white-space:nowrap;color:var(--ink)}
 .about-meta p{margin:0;font-family:Arial,'PingFang SC',sans-serif;font-size:clamp(12px,1.445vw,36px);font-weight:400;line-height:1.444444;color:var(--about-info-muted)}
@@ -50,8 +50,8 @@ footer{display:flex;justify-content:space-between;padding:20px var(--page-gutter
 
 
 
-@media(max-width:1100px){.about-collage-photo{width:clamp(100px,15vw,160px);border-radius:16px}.about-greeting-wrap{padding-top:85px;padding-bottom:310px}.about-greeting{font-size:clamp(104px,13vw,143px)}.about-photo-three{left:3%}.about-photo-two{right:3%}.about-meta{margin-top:45px}}
-@media(max-width:740px){.about-container{padding-bottom:45px}.about-collage-photo{width:clamp(94px,24vw,140px);border-radius:14px}.about-photo-one{left:4%;top:20px}.about-photo-two{right:4%;top:26px}.about-photo-three{left:4%;bottom:20px}.about-photo-four{right:4%;bottom:24px}.about-greeting-wrap{padding:240px 0 240px}.about-greeting{font-size:clamp(106.6px,28.6vw,150.8px)}.about-greeting>span{font-size:.63em}.about-kicker{margin-bottom:20px;font-size:9px}.about-meta{zoom:1;grid-template-columns:1fr;width:100%;max-width:400px;margin:38px auto 0;row-gap:30px;text-align:center}.about-block-title{font-size:clamp(24px,6.5vw,32px);margin-bottom:12px}.about-meta p,.about-meta .about-college,.about-contact-list{font-size:clamp(12px,3.5vw,16px)}}
+@media(max-width:1100px){.about-collage-photo{width:clamp(100px,15vw,160px);border-radius:16px}.about-greeting-wrap{padding-top:85px;padding-bottom:310px}.about-greeting{font-size:clamp(104px,13vw,143px)}.about-photo-three{left:3%}.about-photo-two{right:3%}.about-meta{margin-top:58.5px}}
+@media(max-width:740px){.about-container{padding-bottom:45px}.about-collage-photo{width:clamp(94px,24vw,140px);border-radius:14px}.about-photo-one{left:4%;top:20px}.about-photo-two{right:4%;top:26px}.about-photo-three{left:4%;bottom:20px}.about-photo-four{right:4%;bottom:24px}.about-greeting-wrap{padding:240px 0 240px}.about-greeting{font-size:clamp(106.6px,28.6vw,150.8px)}.about-greeting>span{font-size:.63em}.about-kicker{margin-bottom:20px;font-size:9px}.about-meta{zoom:1;grid-template-columns:1fr;width:100%;max-width:400px;margin:49.4px auto 0;row-gap:30px;text-align:center}.about-block-title{font-size:clamp(24px,6.5vw,32px);margin-bottom:12px}.about-meta p,.about-meta .about-college,.about-contact-list{font-size:clamp(12px,3.5vw,16px)}}
 .expertise-line{display:block;white-space:nowrap}
 
 .about-meta .about-education>p{font-size:clamp(12px,1.605vw,40px);line-height:1.3}
