@@ -24,12 +24,12 @@
 .about-greeting>span{display:block;margin-top:12px;font-size:.61em;line-height:1.15;letter-spacing:-.065em;white-space:nowrap}
 .about-meta{display:grid;grid-template-columns:max-content minmax(0,max-content) max-content;gap:32px;width:fit-content;max-width:100%;margin:38px auto 0;text-align:left}
 .about-meta>section{min-width:0}
-.about-block-title{display:inline-block;padding:4px 8px;margin:0 0 15px;background:var(--panel);border-radius:4px;font:12px/1.5 Arial,'PingFang SC',sans-serif;color:var(--muted)}
-.about-meta p{margin:0 0 12px;font-size:12px;line-height:1.9;color:var(--muted)}
-.about-meta .about-college{font-size:18px;line-height:1.5;letter-spacing:-.035em;color:var(--ink)}
-.about-meta .about-tools{margin-top:14px;font-size:10px;line-height:1.9}
-.about-contact-list{display:flex;flex-direction:column;gap:6px;font-size:12px;line-height:1.8;color:var(--muted);overflow-wrap:anywhere}
-.about-contact-list>a:first-child{font-size:15px;letter-spacing:-.025em;color:var(--ink)}
+.about-block-title{display:block;padding:0;margin:0 0 14px;background:none;font-family:InterHero,Arial,sans-serif;font-size:clamp(16px,1.45vw,24px);font-weight:700;line-height:1.25;letter-spacing:-.035em;white-space:nowrap;color:var(--ink)}
+.about-meta p{margin:0;font-size:14px;line-height:1.6;color:var(--muted)}
+.about-meta .about-college{font-size:16px;font-weight:600;line-height:1.6;letter-spacing:-.035em;color:var(--ink)}
+
+.about-contact-list{display:flex;flex-direction:column;gap:0;font-size:14px;line-height:1.6;color:var(--muted);overflow-wrap:anywhere}
+.about-contact-list>a:first-child{font-size:16px;font-weight:600;letter-spacing:-.025em;color:var(--ink)}
 .about-contact-list>a:hover{text-decoration:underline;text-underline-offset:4px}
 .about-contact-list>a>span{margin-left:6px}
 footer{display:flex;justify-content:space-between;padding:20px var(--page-gutter) 35px;font:9px var(--mono);color:var(--muted)}dialog{position:fixed;inset:0;margin:0;padding:0;border:0;width:100vw;height:100svh;max-width:none;max-height:none;overflow:hidden;background:#232323}dialog::backdrop{background:#232323}#project-content,.detail-frame{width:100%;height:100%;display:block;border:0}body:has(dialog[open]){overflow:hidden}
@@ -50,5 +50,7 @@ footer{display:flex;justify-content:space-between;padding:20px var(--page-gutter
 
 
 
-@media(max-width:1100px){.about-collage-photo{width:clamp(100px,15vw,160px);border-radius:16px}.about-greeting-wrap{width:56%;min-height:780px;padding:45px 0}.about-greeting{font-size:clamp(80px,10vw,110px)}.about-photo-three{left:3%}.about-photo-two{right:3%}.about-meta{grid-template-columns:1fr;width:100%;gap:20px;text-align:center;margin-top:30px}.about-meta .about-tools{margin-top:10px}.about-block-title{margin-bottom:10px}.about-meta p{font-size:13px}.about-meta .about-college{font-size:20px}.about-contact-list>a:first-child{font-size:17px}}
+@media(max-width:1100px){.about-collage-photo{width:clamp(100px,15vw,160px);border-radius:16px}.about-greeting-wrap{width:56%;min-height:780px;padding:45px 0}.about-greeting{font-size:clamp(80px,10vw,110px)}.about-photo-three{left:3%}.about-photo-two{right:3%}.about-meta{grid-template-columns:1fr;width:100%;gap:20px;text-align:center;margin-top:30px}.about-block-title{margin-bottom:10px}.about-meta p{font-size:13px}.about-meta .about-college{font-size:20px}.about-contact-list>a:first-child{font-size:17px}}
 @media(max-width:740px){.about-container{padding-bottom:45px}.about-collage{min-height:0}.about-collage-photo{width:clamp(94px,24vw,140px);border-radius:14px}.about-photo-one{left:4%;top:20px}.about-photo-two{right:4%;top:26px}.about-photo-three{left:4%;bottom:20px}.about-photo-four{right:4%;bottom:24px}.about-greeting-wrap{width:100%;min-height:0;padding:240px 0 240px}.about-greeting{font-size:clamp(82px,22vw,116px)}.about-greeting>span{font-size:.63em}.about-kicker{margin-bottom:20px;font-size:9px}.about-meta{max-width:min(100%,400px);margin:30px auto 0;gap:24px}.about-meta p{font-size:14px}.about-meta .about-college{font-size:22px}.about-contact-list>a:first-child{font-size:19px}}
+
+@media(min-width:1101px) and (max-width:1300px){.about-meta{grid-template-columns:1fr;width:100%;gap:24px;text-align:center}.about-block-title{font-size:21px}}
