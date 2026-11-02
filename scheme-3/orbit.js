@@ -5,6 +5,14 @@ function layoutGallery(){
   const cards=[...grid.querySelectorAll('.work-card')];if(!cards.length)return;
   const style=getComputedStyle(grid),width=grid.clientWidth-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight),gap=parseFloat(style.columnGap)||12;
   if(width<=0)return;
+  if(cards.length===1){
+    const card=cards[0],ratio=Number(card.style.getPropertyValue('--image-ratio'))||1;
+    const cardWidth=Math.min(width,window.innerWidth/4);
+    card.style.setProperty('--card-width',cardWidth+'px');
+    card.style.setProperty('--card-height',(cardWidth/ratio)+'px');
+    return;
+  }
+
   const ratios=cards.map(c=>Number(c.style.getPropertyValue('--image-ratio'))||1),target=Math.min(360,Math.max(150,width/4.6)),cost=Array(cards.length+1).fill(Infinity),next=[];cost[cards.length]=0;
   // Choose balanced rows, including the final row, then fit every row exactly.
   for(let start=cards.length-1;start>=0;start--){let sum=0;for(let end=start;end<cards.length;end++){sum+=ratios[end];const count=end-start+1,available=width-gap*(count-1);if(available<=0)break;const height=available/sum,score=(height-target)**2*count+cost[end+1];if(score<cost[start]){cost[start]=score;next[start]=end+1;}}}
