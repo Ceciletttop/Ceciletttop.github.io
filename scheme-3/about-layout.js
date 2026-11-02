@@ -15,6 +15,10 @@
       x: (Math.min(...rects.map(rect => rect.left)) + Math.max(...rects.map(rect => rect.right))) / 2,
       y: (Math.min(...rects.map(rect => rect.top)) + Math.max(...rects.map(rect => rect.bottom))) / 2
     });
+    // Halve the visible blank area below the bottom portraits without moving the collage.
+    const container = collage.closest('.about-container');
+    const bottomGap = container.getBoundingClientRect().bottom - Math.max(...pictureRects.map(rect => rect.bottom));
+    container.style.marginBottom = `${-Math.max(0, bottomGap) / 2}px`;
     const pictureCenter = center(pictureRects);
     const textCenter = center(textRects);
     const x = pictureCenter.x - textCenter.x;
