@@ -1,6 +1,12 @@
 'use strict';
 const publishRepo='Ceciletttop/Ceciletttop.github.io';
 let publishing=false;
+const publishAuthKey='cecile-github-publish-token-v1';
+let publishSessionToken='';
+function readPublishToken(){try{return publishSessionToken||localStorage.getItem(publishAuthKey)||'';}catch{return publishSessionToken;}}
+function rememberPublishToken(token){publishSessionToken=token;try{localStorage.setItem(publishAuthKey,token);return true;}catch{return false;}}
+function clearPublishToken(){publishSessionToken='';try{localStorage.removeItem(publishAuthKey);}catch{}}
+
 async function preparePublication(snapshot,onImage){
  const seen=new Map();
  async function visit(value){
@@ -22,17 +28,21 @@ async function preparePublication(snapshot,onImage){
 function parsePublishedContent(source){const prefix='window.SITE_CONTENT = ';if(!source.startsWith(prefix))throw new Error('网站配置格式不兼容');return JSON.parse(source.slice(prefix.length).trim().replace(/;$/,''));}
 $('#publish').onclick=()=>{
  if(initializing||publishing)return;
- openModal(`<h2>发布到网站</h2><p>将当前项目、原图、分类和 Hello 文字发布到公开作品集。保存草稿只保留在当前浏览器。</p><p>首次发布需要 GitHub 授权：创建仅允许访问 Ceciletttop.github.io 仓库、Contents（内容）读写权限的细粒度令牌。令牌仅用于本次发布，不保存到浏览器或网站文件。</p><p><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">在 GitHub 创建发布令牌 ↗</a></p><form id="publish-form"><label class="field">GitHub 发布令牌<input type="password" id="publish-token" autocomplete="off" required placeholder="粘贴令牌，仅本次使用"></label><p id="publish-status" role="status"></p><div class="modal-actions"><button type="button" data-close>取消</button><button type="submit" class="primary">确认发布</button></div></form>`);
+ const remembered=Boolean(readPublishToken());
+ openModal(`<h2>发布到网站</h2><p>将当前项目、原图、分类和 Hello 文字同步到公开作品集。</p><p id="publish-auth-note">${remembered?'已记住此浏览器的发布授权，可直接发布。':'首次设置一次 GitHub 发布授权，以后可以直接发布。'}</p>${remembered?'<button type="button" id="forget-publish-token">清除已保存的授权</button>':''}<form id="publish-form"><div id="publish-auth-fields" ${remembered?'hidden':''}><p>创建细粒度令牌：Repository access 选择 Only select repositories → Ceciletttop.github.io；Repository permissions 中 Contents 设为 Read and write。请选择有效期，到期后需更新授权。</p><p><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">在 GitHub 创建发布令牌 ↗</a></p><label class="field">GitHub 发布令牌<input type="password" id="publish-token" autocomplete="off" ${remembered?'':'required'} placeholder="仅在这里粘贴令牌"></label><label style="display:flex;align-items:center;gap:8px;font-size:12px"><input type="checkbox" id="remember-publish-token">记住授权（仅限自己的电脑）</label><p>勾选后，令牌保存在此浏览器中，直到清除；同一网站的脚本可读取它。不会写入作品配置或导出文件。</p></div><p id="publish-status" role="status"></p><div class="modal-actions"><button type="button" data-close>取消</button><button type="submit" class="primary">发布更新</button></div></form>`);
+ $('#forget-publish-token')?.addEventListener('click',()=>{clearPublishToken();$('#publish').click();toast('已清除此浏览器的发布授权');});
  $('#modal [data-close]').onclick=()=>$('#modal').close();
  $('#publish-form').onsubmit=async e=>{
   e.preventDefault();if(publishing)return;
   publishing=true;const form=e.currentTarget,status=$('#publish-status'),snapshot=structuredClone(data),savedRevision=revision;
-  let token=$('#publish-token').value.trim();$('#publish-token').value='';
+  let token=$('#publish-token').value.trim()||readPublishToken();const remember=$('#remember-publish-token').checked;$('#publish-token').value='';
+  if(!token){publishing=false;status.textContent='请先填写 GitHub 发布令牌。';return;}
   form.querySelectorAll('button,input').forEach(x=>x.disabled=true);$('#publish').disabled=true;
   const preventClose=e=>e.preventDefault();$('#modal').addEventListener('cancel',preventClose);
   const report=t=>{status.textContent=t;};
   async function api(path,method='GET',body){
    const response=await fetch(`https://api.github.com/repos/${publishRepo}/${path}`,{method,headers:{Authorization:`Bearer ${token}`,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28',...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});
+   if(response.status===401){clearPublishToken();}
    if(!response.ok)throw new Error(response.status===401||response.status===403?'授权失败，请检查令牌是否有效，并拥有此仓库的 Contents 读写权限。':response.status===409||response.status===422?'网站刚被其他操作更新，本次未覆盖；请刷新检查后重试。':`发布请求失败（${response.status}），草稿仍保留。`);
    return response.json();
   }
@@ -53,6 +63,7 @@ $('#publish').onclick=()=>{
    const newTree=await api('git/trees','POST',{base_tree:tree.sha,tree:entries});
    const commit=await api('git/commits','POST',{message:'Publish portfolio content from admin',tree:newTree.sha,parents:[head]});
    await api('git/refs/heads/main','PATCH',{sha:commit.sha,force:false});committed=true;
+   if(remember&&!rememberPublishToken(token))toast('发布已提交，但浏览器阻止长期保存授权；本页仍可继续发布');
    // A deployment may take minutes; a submitted commit is not yet a live site.
    window.SITE_CONTENT=output;
    if(revision===savedRevision){data=output;dirty=false;try{await accessDraft('readwrite',data);}catch{dirty=true;}render();}
@@ -64,6 +75,6 @@ $('#publish').onclick=()=>{
    }
    report('已提交发布，但尚未确认上线。请稍后打开公开网站检查，勿重复提交。');
   }catch(error){report(committed?'内容已提交，后续检查未完成，请稍后查看网站。':error.message);}
-  finally{token='';publishing=false;form.querySelectorAll('button,input').forEach(x=>x.disabled=false);$('#publish').disabled=false;$('#modal').removeEventListener('cancel',preventClose);}
+  finally{token='';publishing=false;form.querySelectorAll('button,input').forEach(x=>x.disabled=false);$('#publish').disabled=false;$('#modal').removeEventListener('cancel',preventClose);const hasAuth=Boolean(readPublishToken());$('#publish-auth-fields').hidden=hasAuth;$('#publish-token').required=!hasAuth;if(!hasAuth)$('#publish-auth-note').textContent='请输入有效的 GitHub 发布授权。';}
  };
 };
