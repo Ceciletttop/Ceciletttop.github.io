@@ -41,15 +41,91 @@ function renderHello(){$('#content').innerHTML=`<div class="form-layout"><sectio
 function editProject(id){
  const p=data.projects.find(p=>p.id===id);
  let images=structuredClone(p?.images||[]), coverIndex=Math.max(0,images.findIndex(im=>im.src===p?.cover)), busy=false, alive=true;
- openModal(`<h2>${p?'编辑项目':'新增项目'}</h2><p>设置项目信息，添加多张图片，并选择一张作为封面。</p><form id="project-form"><div class="project-fields"><label class="field">英文项目名<input name="en" required maxlength="80" value="${esc(p?.en||'')}" placeholder="PROJECT NAME"></label><label class="field">中文项目名<input name="title" required maxlength="80" value="${esc(p?.title||'')}" placeholder="为作品起一个名字"></label><label class="field">项目介绍<textarea name="summary" maxlength="2000">${esc(p?.summary||'')}</textarea></label><label class="field">项目分类<select name="category"><option value="">未分类</option>${data.categories.map(c=>`<option value="${esc(c.id)}" ${p?.categoryIds.includes(c.id)?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label><div class="upload-heading"><span>项目图片</span><span id="upload-count" aria-live="polite"></span></div><div class="upload-zone" id="upload-zone"><span class="upload-icon" aria-hidden="true">↑</span><strong>将图片拖到这里，或点击选择</strong><span>支持一次多选，也可以分批添加</span><label class="upload-button">选择图片<input id="project-files" type="file" multiple accept="image/jpeg,image/png,image/webp" aria-label="选择项目图片（可多选）"></label><small>JPG、PNG、WebP · 每张不超过 10MB · 原图无压缩</small></div><p class="upload-hint">选中后显示缩略图，可设为封面或移除。图片仅保存于当前浏览器。</p><div id="upload-grid" class="upload-grid"></div><p id="form-error" role="alert"></p></div><div class="modal-actions"><button type="button" data-close>取消</button><button type="submit" class="primary" id="project-submit">${p?'保存项目':'创建项目'}</button></div></form>`);
+ openModal(`<h2>${p?'编辑项目':'新增项目'}</h2><p>设置项目信息，添加多张图片，并选择一张作为封面。</p><form id="project-form"><div class="project-fields"><label class="field">英文项目名<input name="en" required maxlength="80" value="${esc(p?.en||'')}" placeholder="PROJECT NAME"></label><label class="field">中文项目名<input name="title" required maxlength="80" value="${esc(p?.title||'')}" placeholder="为作品起一个名字"></label><label class="field">项目介绍<textarea name="summary" maxlength="2000">${esc(p?.summary||'')}</textarea></label><label class="field">项目分类<select name="category"><option value="">未分类</option>${data.categories.map(c=>`<option value="${esc(c.id)}" ${p?.categoryIds.includes(c.id)?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label><div class="upload-heading"><span>项目图片</span><span id="upload-count" aria-live="polite"></span></div><div class="upload-zone" id="upload-zone"><span class="upload-icon" aria-hidden="true">↑</span><strong>将图片拖到这里，或点击选择</strong><span>支持一次多选，也可以分批添加</span><label class="upload-button">选择图片<input id="project-files" type="file" multiple accept="image/jpeg,image/png,image/webp" aria-label="选择项目图片（可多选）"></label><small>JPG、PNG、WebP · 每张不超过 10MB · 原图无压缩</small></div><p class="upload-hint">长按图片拖动可交换位置，也可设为封面或移除。图片仅保存于当前浏览器。</p><div id="upload-grid" class="upload-grid"></div><span id="sort-status" class="sr-only" role="status" aria-live="polite"></span><p id="form-error" role="alert"></p></div><div class="modal-actions"><button type="button" data-close>取消</button><button type="submit" class="primary" id="project-submit">${p?'保存项目':'创建项目'}</button></div></form>`);
  const form=$('#project-form'),zone=$('#upload-zone'),input=$('#project-files'),grid=$('#upload-grid'),error=$('#form-error'),submit=$('#project-submit'),modal=$('#modal');
  function renderImages(){
   $('#upload-count').textContent=`已选 ${images.length} 张`;
-  grid.innerHTML=images.map((im,i)=>`<div class="upload-tile ${i===coverIndex?'is-cover':''}"><img src="${esc(im.thumb||im.src)}" alt="${esc(im.original||im.label||'项目图片')}" loading="lazy"><span class="upload-filename" title="${esc(im.original||im.label)}">${esc(im.original||im.label||`图片 ${i+1}`)}</span><div><button type="button" data-cover-index="${i}" aria-pressed="${i===coverIndex}">${i===coverIndex?'✓ 封面':'设为封面'}</button><button type="button" data-remove-index="${i}" aria-label="移除图片 ${i+1}" class="danger">移除</button></div></div>`).join('');
+  grid.innerHTML=images.map((im,i)=>`<div data-sort-index="${i}" class="upload-tile ${i===coverIndex?'is-cover':''}"><img class="sort-handle" draggable="false" tabindex="0" title="长按拖动交换位置；Alt + 左右方向键调整位置" src="${esc(im.thumb||im.src)}" alt="${esc(im.original||im.label||'项目图片')}" loading="lazy"><span class="upload-filename" title="${esc(im.original||im.label)}">${esc(im.original||im.label||`图片 ${i+1}`)}</span><div><button type="button" data-cover-index="${i}" aria-pressed="${i===coverIndex}">${i===coverIndex?'✓ 封面':'设为封面'}</button><button type="button" data-remove-index="${i}" aria-label="移除图片 ${i+1}" class="danger">移除</button></div></div>`).join('');
  }
  grid.onclick=e=>{const b=e.target.closest('button');if(!b||busy)return;if(b.dataset.coverIndex!==undefined)coverIndex=Number(b.dataset.coverIndex);if(b.dataset.removeIndex!==undefined){const i=Number(b.dataset.removeIndex);images.splice(i,1);if(i<coverIndex)coverIndex--;else if(i===coverIndex)coverIndex=0;}renderImages();};
+ // Pointer-based sorting keeps touch and mouse behavior consistent.
+ let sorting=null,pressTimer,scrollFrame,suppressClick=false;
+ function swapImages(from,to){
+  if(from===to||from<0||to<0||from>=images.length||to>=images.length)return;
+  const cover=images[coverIndex];[images[from],images[to]]=[images[to],images[from]];
+  coverIndex=images.indexOf(cover);renderImages();
+  $('#sort-status').textContent=`已交换第 ${from+1} 张与第 ${to+1} 张图片的位置`;
+ }
+ function updateTarget(){
+  if(!sorting?.active)return;
+  grid.querySelectorAll('.sort-target').forEach(el=>el.classList.remove('sort-target'));
+  const tile=document.elementFromPoint(sorting.x,sorting.y)?.closest('[data-sort-index]');
+  sorting.to=tile&&grid.contains(tile)?Number(tile.dataset.sortIndex):-1;
+  if(sorting.to!==sorting.from&&sorting.to>=0)tile.classList.add('sort-target');
+  sorting.ghost.style.left=`${sorting.x-sorting.offsetX}px`;
+  sorting.ghost.style.top=`${sorting.y-sorting.offsetY}px`;
+ }
+ function autoScroll(){
+  if(!sorting?.active)return;
+  const fields=form.querySelector('.project-fields'),r=grid.getBoundingClientRect(),f=fields.getBoundingClientRect();
+  const top=Math.max(r.top,f.top),bottom=Math.min(r.bottom,f.bottom);
+  if(sorting.x>=r.left&&sorting.x<=r.right){
+   const step=sorting.y<top+30?-7:sorting.y>bottom-30?7:0;
+   if(step){const before=grid.scrollTop;grid.scrollTop+=step;if(grid.scrollTop===before)fields.scrollTop+=step;updateTarget();}
+  }
+  scrollFrame=requestAnimationFrame(autoScroll);
+ }
+ function activateSort(){
+  if(!sorting||!alive||busy)return;
+  sorting.active=true;suppressClick=true;
+  const r=sorting.tile.getBoundingClientRect();
+  sorting.offsetX=sorting.x-r.left;sorting.offsetY=sorting.y-r.top;
+  sorting.ghost=sorting.tile.cloneNode(true);sorting.ghost.classList.add('sort-ghost');sorting.ghost.setAttribute('aria-hidden','true');
+  sorting.ghost.removeAttribute('data-sort-index');sorting.ghost.style.width=`${r.width}px`;
+  sorting.ghost.querySelectorAll('button,[tabindex]').forEach(el=>el.tabIndex=-1);
+  modal.append(sorting.ghost);sorting.tile.classList.add('is-sorting');grid.classList.add('sorting');
+  $('#sort-status').textContent='已拾起图片，拖到另一张图片上松开即可交换';
+  updateTarget();autoScroll();
+ }
+ function finishSort(commit){
+  clearTimeout(pressTimer);cancelAnimationFrame(scrollFrame);
+  if(!sorting)return;
+  const {from,to,active,pointerId,ghost}=sorting;sorting=null;
+  if(grid.hasPointerCapture(pointerId))grid.releasePointerCapture(pointerId);
+  ghost?.remove();grid.classList.remove('sorting');grid.querySelectorAll('.is-sorting,.sort-target').forEach(el=>el.classList.remove('is-sorting','sort-target'));
+  if(commit&&active&&to>=0&&to!==from)swapImages(from,to);
+  else if(active)$('#sort-status').textContent='顺序未改变';
+  setTimeout(()=>{suppressClick=false;},0);
+ }
+ grid.addEventListener('pointerdown',e=>{
+  if(busy||sorting||e.button!==0||!e.isPrimary)return;
+  const image=e.target.closest('.sort-handle'),tile=image?.closest('[data-sort-index]');if(!tile)return;
+  sorting={pointerId:e.pointerId,from:Number(tile.dataset.sortIndex),to:-1,tile,x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY,active:false};
+  grid.setPointerCapture(e.pointerId);pressTimer=setTimeout(activateSort,300);
+ });
+ grid.addEventListener('pointermove',e=>{
+  if(!sorting||e.pointerId!==sorting.pointerId)return;
+  sorting.x=e.clientX;sorting.y=e.clientY;
+  if(!sorting.active&&Math.hypot(sorting.x-sorting.startX,sorting.y-sorting.startY)>8){
+   if(e.pointerType==='mouse'){clearTimeout(pressTimer);activateSort();}else{finishSort(false);return;}
+  }
+  if(sorting?.active){e.preventDefault();updateTarget();}
+ });
+ grid.addEventListener('pointerup',e=>{if(e.pointerId===sorting?.pointerId){updateTarget();finishSort(true);}});
+ grid.addEventListener('pointercancel',()=>finishSort(false));
+ grid.addEventListener('lostpointercapture',()=>finishSort(false));
+ grid.addEventListener('dragstart',e=>e.preventDefault());
+ grid.addEventListener('contextmenu',e=>{if(e.target.closest('.sort-handle'))e.preventDefault();});
+ grid.addEventListener('click',e=>{if(suppressClick){e.preventDefault();e.stopImmediatePropagation();}},{capture:true});
+ grid.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&sorting){e.preventDefault();e.stopPropagation();finishSort(false);return;}
+  const tile=e.target.closest('[data-sort-index]');if(busy||!tile||!e.altKey||!['ArrowLeft','ArrowRight'].includes(e.key))return;
+  e.preventDefault();const from=Number(tile.dataset.sortIndex),to=from+(e.key==='ArrowLeft'?-1:1);
+  if(to>=0&&to<images.length){swapImages(from,to);grid.querySelector(`[data-sort-index="${to}"] .sort-handle`).focus();}
+ });
+ modal.addEventListener('close',()=>finishSort(false),{once:true});
  async function addFiles(files){
-  if(busy||!alive)return;
+  if(busy||!alive||sorting)return;
   const list=Array.from(files);if(!list.length)return;
   busy=true;input.disabled=true;submit.disabled=true;zone.setAttribute('aria-busy','true');error.textContent='正在读取图片…';const errors=[];
   for(const file of list){
