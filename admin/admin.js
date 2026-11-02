@@ -40,8 +40,8 @@ function helloPreview(){const h=data.hello;return `<div class="mini-label">HELLO
 function renderHello(){$('#content').innerHTML=`<div class="form-layout"><section class="panel"><div class="panel-head"><h2>编辑文字</h2><span class="chip">ABOUT & CONTACT</span></div><div class="form-body">${helloFields.map(([key,label])=>`<label class="field">${label}${key==='expertise'?`<textarea data-hello="${key}" maxlength="1000">${esc(data.hello[key])}</textarea>`:`<input data-hello="${key}" type="${key==='email'?'email':'text'}" maxlength="150" value="${esc(data.hello[key])}">`}</label>`).join('')}</div></section><section class="panel" style="align-self:start;position:sticky;top:22px"><div class="hello-preview" id="hello-preview">${helloPreview()}</div><div class="panel-head"><p>文字会即时反映在预览中，保存草稿后，点击「发布到网站」同步。</p></div></section></div>`;document.querySelectorAll('[data-hello]').forEach(el=>el.oninput=()=>{data.hello[el.dataset.hello]=el.value;changed();$('#hello-preview').innerHTML=helloPreview();});}
 function editProject(id){
  const p=data.projects.find(p=>p.id===id);
- let images=structuredClone(p?.images||[]), videos=structuredClone(p?.videos||[]), busy=false, alive=true;
- openModal(`<h2>${p?'编辑项目':'新增项目'}</h2><p>设置项目信息并添加图片，第一张图片自动作为封面。</p><form id="project-form"><div class="project-fields"><label class="field">英文项目名<input name="en" required maxlength="80" value="${esc(p?.en||'')}" placeholder="PROJECT NAME"></label><label class="field">中文项目名<input name="title" required maxlength="80" value="${esc(p?.title||'')}" placeholder="为作品起一个名字"></label><label class="field">项目介绍<textarea name="summary" maxlength="2000">${esc(p?.summary||'')}</textarea></label><label class="field">项目分类<select name="category"><option value="">未分类</option>${data.categories.map(c=>`<option value="${esc(c.id)}" ${p?.categoryIds[0]===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label><div class="upload-heading"><span>项目图片与视频</span><span id="upload-count" aria-live="polite"></span></div><div class="upload-zone" id="upload-zone"><span class="upload-icon" aria-hidden="true">↑</span><strong>将图片或视频拖到这里，或点击选择</strong><span>支持一次多选，也可以分批添加</span><label class="upload-button">选择文件<input id="project-files" type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,.mp4,.webm" aria-label="选择项目图片或视频（可多选）"></label><small>图片 JPG、PNG、WebP ≤ 10MB；视频 MP4、WebM ≤ 100MB（100,000,000 字节）。原文件不压缩。</small></div><p class="upload-hint">按住图片拖动到目标位置，松开即可交换，第一张自动作为封面；右上角可删除图片。保存草稿后，点击「发布到网站」更新公开网站。</p><div id="upload-grid" class="upload-grid"></div><span id="sort-status" class="sr-only" role="status" aria-live="polite"></span><div id="video-list"></div><p id="form-error" role="alert"></p></div><div class="modal-actions"><button type="button" data-close>取消</button><button type="submit" class="primary" id="project-submit">${p?'保存项目':'创建项目'}</button></div></form>`);
+ let images=structuredClone(p?.images||[]), videos=structuredClone(p?.videos||[]), busy=false, alive=true, compressionController=null;
+ openModal(`<h2>${p?'编辑项目':'新增项目'}</h2><p>设置项目信息并添加图片，第一张图片自动作为封面。</p><form id="project-form"><div class="project-fields"><label class="field">英文项目名<input name="en" required maxlength="80" value="${esc(p?.en||'')}" placeholder="PROJECT NAME"></label><label class="field">中文项目名<input name="title" required maxlength="80" value="${esc(p?.title||'')}" placeholder="为作品起一个名字"></label><label class="field">项目介绍<textarea name="summary" maxlength="2000">${esc(p?.summary||'')}</textarea></label><label class="field">项目分类<select name="category"><option value="">未分类</option>${data.categories.map(c=>`<option value="${esc(c.id)}" ${p?.categoryIds[0]===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label><div class="upload-heading"><span>项目图片与视频</span><span id="upload-count" aria-live="polite"></span></div><div class="upload-zone" id="upload-zone"><span class="upload-icon" aria-hidden="true">↑</span><strong>将图片或视频拖到这里，或点击选择</strong><span>支持一次多选，也可以分批添加</span><label class="upload-button">选择文件<input id="project-files" type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,.mp4,.webm" aria-label="选择项目图片或视频（可多选）"></label><small>图片 JPG、PNG、WebP ≤ 10MB；视频 MP4、WebM ≤ 100MB（100,000,000 字节）。100MB 以内保留原文件；超限视频确认后压缩到约 95MB。</small></div><p class="upload-hint">按住图片拖动到目标位置，松开即可交换，第一张自动作为封面；右上角可删除图片。保存草稿后，点击「发布到网站」更新公开网站。</p><div id="upload-grid" class="upload-grid"></div><span id="sort-status" class="sr-only" role="status" aria-live="polite"></span><div id="video-list"></div><div id="compression-panel" aria-live="polite"></div><p id="form-error" role="alert"></p></div><div class="modal-actions"><button type="button" data-close>取消</button><button type="submit" class="primary" id="project-submit">${p?'保存项目':'创建项目'}</button></div></form>`);
  const form=$('#project-form'),zone=$('#upload-zone'),input=$('#project-files'),grid=$('#upload-grid'),error=$('#form-error'),submit=$('#project-submit'),modal=$('#modal');
  function renderImages(){
   $('#upload-count').textContent=`已选 ${images.length} 张图片 · ${videos.length} 个视频`;
@@ -147,26 +147,44 @@ function editProject(id){
   video.preload='metadata';video.onloadedmetadata=()=>{const width=video.videoWidth,height=video.videoHeight;if(!width||!height)finish(null,new Error('无有效视频画面'));else finish({width,height});};
   video.onerror=()=>finish(null,new Error('视频无法解码'));video.src=url;
  });}
+ async function confirmAndCompress(file){
+  const panel=$('#compression-panel');
+  const approved=await new Promise(resolve=>{
+   const finish=value=>{modal.removeEventListener('close',closed);panel.replaceChildren();resolve(value);};
+   const closed=()=>finish(false);modal.addEventListener('close',closed,{once:true});
+   panel.innerHTML=`<strong>${esc(file.name)} · ${(file.size/1000000).toFixed(1)}MB</strong><p>超过 100MB。是否压缩到约 95MB？画质可能降低，原文件不变。处理时间约为视频时长，请保持页面在前台。输出为 MP4 或 WebM，实际大小可能更小。</p><div class="compression-actions"><button type="button" class="primary" data-compress-yes>确认压缩到约 95MB</button><button type="button" data-compress-no>跳过此视频</button></div>`;
+   panel.querySelector('[data-compress-yes]').onclick=()=>finish(true);panel.querySelector('[data-compress-no]').onclick=()=>finish(false);panel.scrollIntoView({block:'nearest'});
+  });
+  if(!approved||!alive)return null;
+  compressionController=new AbortController();
+  panel.innerHTML='<p class="compression-status">正在准备压缩…请保持此页面在前台。</p><div class="compression-media"></div><button type="button" data-compress-cancel>取消压缩</button>';
+  panel.querySelector('[data-compress-cancel]').onclick=()=>compressionController?.abort();
+  try{return await window.compressPortfolioVideo(file,{signal:compressionController.signal,preview:panel.querySelector('.compression-media'),onProgress:percent=>{panel.querySelector('.compression-status').textContent=`正在压缩 ${percent}% · 请保持此页面在前台`;}});}
+  finally{compressionController=null;panel.replaceChildren();}
+ }
  async function addFiles(files){
   if(busy||!alive||sorting)return;
   const list=Array.from(files);if(!list.length)return;
   busy=true;input.disabled=true;submit.disabled=true;zone.setAttribute('aria-busy','true');error.textContent='正在读取文件…';const errors=[];
-  for(const file of list){
+  for(let file of list){
    if(!alive)break;
    const videoType=/\.mp4$/i.test(file.name)?'video/mp4':/\.webm$/i.test(file.name)?'video/webm':null;
-   const isVideo=Boolean(videoType),type=isVideo?videoType:file.type;
+   const isVideo=Boolean(videoType);let type=isVideo?videoType:file.type;
    if(!isVideo&&!['image/jpeg','image/png','image/webp'].includes(type)){errors.push(`${file.name}：仅支持 JPG、PNG、WebP、MP4 或 WebM`);continue;}
    if(!file.size){errors.push(`${file.name}：文件为空`);continue;}
-   if(file.size>(isVideo?100000000:10*1024*1024)){errors.push(`${file.name}：超过 ${isVideo?'100':'10'}MB`);continue;}
+   if(!isVideo&&file.size>10*1024*1024){errors.push(`${file.name}：超过 10MB`);continue;}
    const key=[file.name,file.size,file.lastModified].join(':');if([...images,...videos].some(im=>im.uploadKey===key))continue;
    try{
+    const originalSize=file.size,originalName=file.name;
+    if(isVideo&&file.size>100000000){const compressed=await confirmAndCompress(file);if(!compressed){errors.push(`${file.name}：已跳过`);continue;}file=compressed;type=file.type;}
+    if(!alive)break;
     const videoSize=isVideo?await videoDimensions(file):null;
     const src=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(new Error('读取失败'));r.readAsDataURL(isVideo?file.slice(0,file.size,type):file);});
     const dimensions=videoSize||await new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve({width:im.naturalWidth,height:im.naturalHeight});im.onerror=()=>reject(new Error('图片损坏'));im.src=src;});
     if(!alive)break;
-    if(isVideo){videos.push({src,type:'video',label:file.name,original:file.name,size:file.size,uploadKey:key,...dimensions});renderVideos();}
+    if(isVideo){videos.push({src,type:'video',label:file.name,original:file.name,size:file.size,...(originalSize!==file.size?{compressed:true,originalSize,originalName}:{}),uploadKey:key,...dimensions});renderVideos();}
     else{images.push({src,thumb:src,type:'image',label:file.name,original:file.name,uploadKey:key,...dimensions});renderImages();}
-   }catch{errors.push(`${file.name}：无法读取，请检查文件是否完整；视频建议使用 H.264 编码 MP4`);}
+   }catch(failure){errors.push(`${file.name}：${failure.message||'无法读取文件'}`);}
   }
   if(!alive)return;
   busy=false;input.disabled=false;submit.disabled=false;zone.removeAttribute('aria-busy');input.value='';error.textContent=errors.join('；');renderImages();
@@ -178,7 +196,7 @@ function editProject(id){
  const dragLeave=e=>{e.preventDefault();if(--dragDepth<=0){dragDepth=0;zone.classList.remove('is-dragging');}};
  const drop=e=>{e.preventDefault();dragDepth=0;zone.classList.remove('is-dragging');if(busy){error.textContent='正在读取上一批文件，请稍候再拖入。';return;}addFiles(e.dataTransfer?.files||[]);};
  modal.addEventListener('dragenter',dragEnter);modal.addEventListener('dragover',dragOver);modal.addEventListener('dragleave',dragLeave);modal.addEventListener('drop',drop);
- modal.addEventListener('close',()=>{alive=false;modal.removeEventListener('dragenter',dragEnter);modal.removeEventListener('dragover',dragOver);modal.removeEventListener('dragleave',dragLeave);modal.removeEventListener('drop',drop);},{once:true});
+ modal.addEventListener('close',()=>{alive=false;compressionController?.abort();modal.removeEventListener('dragenter',dragEnter);modal.removeEventListener('dragover',dragOver);modal.removeEventListener('dragleave',dragLeave);modal.removeEventListener('drop',drop);},{once:true});
  form.onsubmit=e=>{
   e.preventDefault();if(busy)return;
   const fd=new FormData(form),en=fd.get('en').trim(),title=fd.get('title').trim();
