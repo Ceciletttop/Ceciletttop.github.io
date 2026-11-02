@@ -14,3 +14,5 @@
 发布仅使用 GitHub API 和 GitHub Pages，不依赖 Netlify。旧 OAuth 预览入口转至正式后台。
 
 首次接入的 Chrome 草稿已提取为公开配置。原始导出备份保留在本机 Downloads/cecile-content.json。
+
+视频上传支持 MP4 / WebM，每个不超过 100,000,000 字节（100MB），不转码、不压缩。视频元数据读取后提供播放预览与删除；项目保留至少一张封面图片。详情页沿用视频在前、图片在后的展示顺序。新增视频也按 SHA-256 存入 assets/uploads 并通过同一次提交发布。
