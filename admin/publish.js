@@ -84,6 +84,14 @@ $('#publish').onclick=()=>{
    const output=await preparePublication(snapshot,async(path,content)=>{if(exists.has(path))return;report(`正在上传媒体文件 ${++count}（约 ${(content.length*3/4/1000000).toFixed(1)}MB）…`);const blob=await api('git/blobs','POST',{content,encoding:'base64'});entries.push({path,mode:'100644',type:'blob',sha:blob.sha});exists.add(path);});
    output.revision=crypto.randomUUID();
    entries.push({path:'site-content.js',mode:'100644',type:'blob',content:'window.SITE_CONTENT = '+JSON.stringify(output)+';\n'});
+   // Tie each page's content URL to this publication so cached drafts cannot mask a successful publish.
+   for(const path of ['index.html','detail.html','admin/index.html']){
+    const file=await api('contents/'+path+'?ref='+head);
+    const html=new TextDecoder().decode(Uint8Array.from(atob(file.content.replace(/\s/g,'')),c=>c.charCodeAt(0)));
+    const updated=html.replace(/site-content\.js(?:\?[^"']*)?/g,'site-content.js?v='+output.revision);
+    if(updated===html)throw new Error('页面内容入口未找到，未提交发布：'+path);
+    entries.push({path,mode:'100644',type:'blob',content:updated});
+   }
    report('媒体文件已上传，正在提交网站更新…');
    const newTree=await api('git/trees','POST',{base_tree:tree.sha,tree:entries});
    const commit=await api('git/commits','POST',{message:'Publish portfolio content from admin',tree:newTree.sha,parents:[head]});
