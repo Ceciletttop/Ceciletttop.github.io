@@ -22,6 +22,16 @@ async function preparePublication(snapshot,onMedia){
 
     const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',raw)),v=>v.toString(16).padStart(2,'0')).join('');
     const path=`assets/uploads/${digest}.${{'image/jpeg':'jpg','image/png':'png','image/webp':'webp','video/mp4':'mp4','video/webm':'webm','video/quicktime':'mov'}[m[1]]}`;
+    if(isVideo&&bytes>12*1024*1024){
+     const parts=[],partBytes=6*1024*1024,partChars=partBytes/3*4;
+     for(let start=0,index=0;start<m[2].length;start+=partChars,index++){
+      const content=m[2].slice(start,start+partChars),partPath=`assets/uploads/${digest}.part-${index}.bin`;
+      await onMedia(partPath,content);parts.push({path:'/'+partPath,size:Math.min(partBytes,bytes-index*partBytes)});
+     }
+     const manifestPath=`assets/uploads/${digest}.video.json`;
+     await onMedia(manifestPath,btoa(JSON.stringify({version:1,type:m[1],size:bytes,sha256:digest,parts})));
+     return '/'+manifestPath;
+    }
     await onMedia(path,m[2]);return '/'+path;
    })();seen.set(value,task);return task;
   }

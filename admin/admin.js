@@ -137,7 +137,8 @@ function editProject(id){
  modal.addEventListener('close',()=>finishSort(false),{once:true});
  function renderVideos(){
   $('#upload-count').textContent=`已选 ${images.length} 张图片 · ${videos.length} 个视频`;
-  $('#video-list').innerHTML=videos.length?`<h3 class="video-heading">项目视频</h3><p>详情页先展示视频，再按上方顺序展示图片。请保留至少一张图片作为项目封面。</p><div class="video-grid">${videos.map((v,i)=>`<div class="video-tile"><video controls playsinline preload="metadata" src="${esc(v.src)}" ${v.poster?`poster="${esc(v.poster)}"`:''}></video><div class="video-info"><span>${esc(v.original||v.label||`视频 ${i+1}`)}${v.size?` · ${(v.size/1000000).toFixed(1)} MB`:''}</span><button type="button" data-remove-video="${i}" aria-label="删除视频 ${i+1}" class="danger">×</button></div></div>`).join('')}</div>`:'';
+  $('#video-list').innerHTML=videos.length?`<h3 class="video-heading">项目视频</h3><p>详情页先展示视频，再按上方顺序展示图片。请保留至少一张图片作为项目封面。</p><div class="video-grid">${videos.map((v,i)=>`<div class="video-tile"><video controls playsinline preload="metadata" data-video-src="${esc(v.src)}" ${v.poster?`poster="${esc(v.poster)}"`:''}></video><div class="video-info"><span>${esc(v.original||v.label||`视频 ${i+1}`)}${v.size?` · ${(v.size/1000000).toFixed(1)} MB`:''}</span><button type="button" data-remove-video="${i}" aria-label="删除视频 ${i+1}" class="danger">×</button></div></div>`).join('')}</div>`:'';
+  $('#video-list').querySelectorAll('video').forEach(video=>window.attachPortfolioVideo(video,video.dataset.videoSrc));
  }
  $('#video-list').onclick=e=>{const button=e.target.closest('[data-remove-video]');if(!button||busy)return;videos.splice(Number(button.dataset.removeVideo),1);renderVideos();};
  function videoDimensions(file){return new Promise((resolve,reject)=>{
