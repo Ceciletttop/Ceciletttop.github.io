@@ -12,7 +12,7 @@ async function preparePublication(snapshot,onMedia){
  async function visit(value){
   if(typeof value==='string'&&/^data:(image|video)\//.test(value)){
    if(seen.has(value))return seen.get(value);
-   const task=(async()=>{const m=value.match(/^data:((?:image\/(?:jpeg|png|webp)|video\/(?:mp4|webm)));base64,(.+)$/s);if(!m)throw new Error('媒体格式无效');
+   const task=(async()=>{const m=value.match(/^data:((?:image\/(?:jpeg|png|webp)|video\/(?:mp4|webm|quicktime)));base64,(.+)$/s);if(!m)throw new Error('媒体格式无效');
     const isVideo=m[1].startsWith('video/'),limit=isVideo?100000000:10*1024*1024;
     const bytes=m[2].length/4*3-(m[2].endsWith('==')?2:m[2].endsWith('=')?1:0);
     if(bytes>limit)throw new Error(isVideo?'视频超过 100MB':'图片超过 10MB');
@@ -21,7 +21,7 @@ async function preparePublication(snapshot,onMedia){
     for(let start=0;start<m[2].length;start+=1048576){const chunk=atob(m[2].slice(start,start+1048576));for(let i=0;i<chunk.length;i++)raw[offset++]=chunk.charCodeAt(i);}
 
     const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',raw)),v=>v.toString(16).padStart(2,'0')).join('');
-    const path=`assets/uploads/${digest}.${{'image/jpeg':'jpg','image/png':'png','image/webp':'webp','video/mp4':'mp4','video/webm':'webm'}[m[1]]}`;
+    const path=`assets/uploads/${digest}.${{'image/jpeg':'jpg','image/png':'png','image/webp':'webp','video/mp4':'mp4','video/webm':'webm','video/quicktime':'mov'}[m[1]]}`;
     await onMedia(path,m[2]);return '/'+path;
    })();seen.set(value,task);return task;
   }
