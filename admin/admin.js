@@ -23,8 +23,57 @@ else renderHello();$('#search')?.addEventListener('input',e=>{query=e.target.val
 const helloFields=[['greeting','问候语'],['name','名字 / 自我介绍'],['educationTitle','教育板块标题'],['school','毕业院校'],['major','专业'],['expertiseTitle','专长板块标题'],['expertise','个人专长'],['contactTitle','联系板块标题'],['email','电子邮箱'],['wechat','微信号']];
 function helloPreview(){const h=data.hello;return `<div class="mini-label">HELLO SECTION <span>实时文字预览 ↗</span></div><h2>${esc(h.greeting)}<span>${esc(h.name)}</span></h2><h3>${esc(h.educationTitle)}</h3><p>${esc(h.school)}<br>${esc(h.major)}</p><h3>${esc(h.expertiseTitle)}</h3><p>${esc(h.expertise)}</p><h3>${esc(h.contactTitle)}</h3><p>${esc(h.email)}<br>wechat: ${esc(h.wechat)}</p>`;}
 function renderHello(){$('#content').innerHTML=`<div class="form-layout"><section class="panel"><div class="panel-head"><h2>编辑文字</h2><span class="chip">ABOUT & CONTACT</span></div><div class="form-body">${helloFields.map(([key,label])=>`<label class="field">${label}${key==='expertise'?`<textarea data-hello="${key}" maxlength="1000">${esc(data.hello[key])}</textarea>`:`<input data-hello="${key}" type="${key==='email'?'email':'text'}" maxlength="150" value="${esc(data.hello[key])}">`}</label>`).join('')}</div></section><section class="panel" style="align-self:start;position:sticky;top:22px"><div class="hello-preview" id="hello-preview">${helloPreview()}</div><div class="panel-head"><p>文字会即时反映在预览中，保存后保留在本机。</p></div></section></div>`;document.querySelectorAll('[data-hello]').forEach(el=>el.oninput=()=>{data.hello[el.dataset.hello]=el.value;changed();$('#hello-preview').innerHTML=helloPreview();});}
-function editProject(id){const p=data.projects.find(p=>p.id===id);openModal(`<h2>${p?'编辑项目':'新增项目'}</h2><p>设置项目名称、分类和封面，添加到你的作品列表。</p><form id="project-form"><label class="field">英文项目名<input name="en" required maxlength="80" value="${esc(p?.en||'')}" placeholder="PROJECT NAME"></label><label class="field">中文项目名<input name="title" required maxlength="80" value="${esc(p?.title||'')}" placeholder="为作品起一个名字"></label><label class="field">项目介绍<textarea name="summary" maxlength="2000">${esc(p?.summary||'')}</textarea></label><label class="field">项目分类<select name="category"><option value="">未分类</option>${data.categories.map(c=>`<option value="${esc(c.id)}" ${p?.categoryIds.includes(c.id)?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label><label class="field">封面图片（JPG、PNG、WebP，最大 2MB）<input type="file" name="cover" accept="image/jpeg,image/png,image/webp" ${p?'':'required'}></label><p id="form-error" role="alert"></p><div class="modal-actions"><button type="button" data-close>取消</button><button type="submit" class="primary">${p?'保存项目':'创建项目'}</button></div></form>`);$('#modal [data-close]').onclick=()=>$('#modal').close();$('#project-form').onsubmit=async e=>{e.preventDefault();const form=e.currentTarget,fd=new FormData(form),file=fd.get('cover');let cover=p?.cover,coverThumb=p?.coverThumb;if(file.size){if(file.size>2*1024*1024||!['image/jpeg','image/png','image/webp'].includes(file.type)){$('#form-error').textContent='请选择不超过 2MB 的 JPG、PNG 或 WebP 图片。';return;}try{cover=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file);});coverThumb=cover;}catch{$('#form-error').textContent='图片读取失败，请重新选择。';return;}}
-const category=fd.get('category');const updated={...(p||{id:'project-'+crypto.randomUUID(),images:[],videos:[],tags:[]}),en:fd.get('en').trim(),title:fd.get('title').trim(),summary:fd.get('summary').trim(),cover,coverThumb,categoryIds:category?[category]:[]};if(!updated.en||!updated.title){$('#form-error').textContent='项目名称不能只包含空格。';return;}if(p&&category===(p.categoryIds[0]||''))updated.categoryIds=p.categoryIds;if(!p)updated.images=[{src:cover,thumb:cover,label:updated.title,type:'image'}];if(p)data.projects[data.projects.indexOf(p)]=updated;else data.projects.push(updated);changed();$('#modal').close();render();toast(p?'项目已更新':'新项目已添加');};}
+function editProject(id){
+ const p=data.projects.find(p=>p.id===id);
+ let images=structuredClone(p?.images||[]), coverIndex=Math.max(0,images.findIndex(im=>im.src===p?.cover)), busy=false, alive=true;
+ openModal(`<h2>${p?'编辑项目':'新增项目'}</h2><p>设置项目信息，添加多张图片，并选择一张作为封面。</p><form id="project-form"><label class="field">英文项目名<input name="en" required maxlength="80" value="${esc(p?.en||'')}" placeholder="PROJECT NAME"></label><label class="field">中文项目名<input name="title" required maxlength="80" value="${esc(p?.title||'')}" placeholder="为作品起一个名字"></label><label class="field">项目介绍<textarea name="summary" maxlength="2000">${esc(p?.summary||'')}</textarea></label><label class="field">项目分类<select name="category"><option value="">未分类</option>${data.categories.map(c=>`<option value="${esc(c.id)}" ${p?.categoryIds.includes(c.id)?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label><div class="upload-heading"><span>项目图片</span><span id="upload-count" aria-live="polite"></span></div><div class="upload-zone" id="upload-zone"><span class="upload-icon" aria-hidden="true">↑</span><strong>将图片拖到这里，或点击选择</strong><span>支持一次多选，也可以分批添加</span><label class="upload-button">选择图片<input id="project-files" type="file" multiple accept="image/jpeg,image/png,image/webp" aria-label="选择项目图片（可多选）"></label><small>JPG、PNG、WebP · 每张不超过 2MB</small></div><p class="upload-hint">选中后显示缩略图，可设为封面或移除。图片仅保存于当前浏览器。</p><div id="upload-grid" class="upload-grid"></div><p id="form-error" role="alert"></p><div class="modal-actions"><button type="button" data-close>取消</button><button type="submit" class="primary" id="project-submit">${p?'保存项目':'创建项目'}</button></div></form>`);
+ const form=$('#project-form'),zone=$('#upload-zone'),input=$('#project-files'),grid=$('#upload-grid'),error=$('#form-error'),submit=$('#project-submit'),modal=$('#modal');
+ function renderImages(){
+  $('#upload-count').textContent=`已选 ${images.length} 张`;
+  grid.innerHTML=images.map((im,i)=>`<div class="upload-tile ${i===coverIndex?'is-cover':''}"><img src="${esc(im.thumb||im.src)}" alt="${esc(im.original||im.label||'项目图片')}" loading="lazy"><span class="upload-filename" title="${esc(im.original||im.label)}">${esc(im.original||im.label||`图片 ${i+1}`)}</span><div><button type="button" data-cover-index="${i}" aria-pressed="${i===coverIndex}">${i===coverIndex?'✓ 封面':'设为封面'}</button><button type="button" data-remove-index="${i}" aria-label="移除图片 ${i+1}" class="danger">移除</button></div></div>`).join('');
+ }
+ grid.onclick=e=>{const b=e.target.closest('button');if(!b||busy)return;if(b.dataset.coverIndex!==undefined)coverIndex=Number(b.dataset.coverIndex);if(b.dataset.removeIndex!==undefined){const i=Number(b.dataset.removeIndex);images.splice(i,1);if(i<coverIndex)coverIndex--;else if(i===coverIndex)coverIndex=0;}renderImages();};
+ async function addFiles(files){
+  if(busy||!alive)return;
+  const list=Array.from(files);if(!list.length)return;
+  busy=true;input.disabled=true;submit.disabled=true;zone.setAttribute('aria-busy','true');error.textContent='正在读取图片…';const errors=[];
+  for(const file of list){
+   if(!alive)break;
+   if(!['image/jpeg','image/png','image/webp'].includes(file.type)){errors.push(`${file.name}：仅支持 JPG、PNG 或 WebP`);continue;}
+   if(file.size>2*1024*1024){errors.push(`${file.name}：超过 2MB`);continue;}
+   const key=[file.name,file.size,file.lastModified].join(':');if(images.some(im=>im.uploadKey===key))continue;
+   try{
+    const src=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(new Error('读取失败'));r.readAsDataURL(file);});
+    const dimensions=await new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve({width:im.naturalWidth,height:im.naturalHeight});im.onerror=()=>reject(new Error('图片损坏'));im.src=src;});
+    if(!alive)break;
+    images.push({src,thumb:src,type:'image',label:file.name,original:file.name,uploadKey:key,...dimensions});renderImages();
+   }catch{errors.push(`${file.name}：无法读取，请换一张图片`);}
+  }
+  if(!alive)return;
+  busy=false;input.disabled=false;submit.disabled=false;zone.removeAttribute('aria-busy');input.value='';error.textContent=errors.join('；');renderImages();
+ }
+ input.onchange=()=>addFiles(input.files);
+ let dragDepth=0;
+ const dragEnter=e=>{e.preventDefault();dragDepth++;zone.classList.add('is-dragging');};
+ const dragOver=e=>{e.preventDefault();if(e.dataTransfer)e.dataTransfer.dropEffect=busy?'none':'copy';};
+ const dragLeave=e=>{e.preventDefault();if(--dragDepth<=0){dragDepth=0;zone.classList.remove('is-dragging');}};
+ const drop=e=>{e.preventDefault();dragDepth=0;zone.classList.remove('is-dragging');if(busy){error.textContent='正在读取上一批图片，请稍候再拖入。';return;}addFiles(e.dataTransfer?.files||[]);};
+ modal.addEventListener('dragenter',dragEnter);modal.addEventListener('dragover',dragOver);modal.addEventListener('dragleave',dragLeave);modal.addEventListener('drop',drop);
+ modal.addEventListener('close',()=>{alive=false;modal.removeEventListener('dragenter',dragEnter);modal.removeEventListener('dragover',dragOver);modal.removeEventListener('dragleave',dragLeave);modal.removeEventListener('drop',drop);},{once:true});
+ form.onsubmit=e=>{
+  e.preventDefault();if(busy)return;
+  const fd=new FormData(form),en=fd.get('en').trim(),title=fd.get('title').trim();
+  if(!en||!title){error.textContent='项目名称不能只包含空格。';return;}
+  if(!images.length){error.textContent='请至少选择一张项目图片。';return;}
+  const category=fd.get('category'),cover=images[coverIndex]||images[0];
+  const updated={...(p||{id:'project-'+crypto.randomUUID(),videos:[],tags:[]}),en,title,summary:fd.get('summary').trim(),images,cover:cover.src,coverThumb:cover.thumb||cover.src,categoryIds:category?[category]:[]};
+  if(p&&category===(p.categoryIds[0]||''))updated.categoryIds=p.categoryIds;
+  if(updated.orbitCover&&!images.some(im=>(im.thumb||im.src)===updated.orbitCover))delete updated.orbitCover;
+  if(p)data.projects[data.projects.indexOf(p)]=updated;else data.projects.push(updated);
+  changed();modal.close();render();toast(p?'项目已更新':`已添加项目，共 ${images.length} 张图片`);
+ };
+ renderImages();
+}
 function imagePicker(id){const p=data.projects.find(p=>p.id===id);openModal(`<h2>选择展示图片</h2><p>${esc(p.en)} · 选择用于首页旋转画廊的图片</p><div class="image-picker">${p.images.map((im,i)=>`<button data-pick="${i}" class="${orbitImg(p)===(im.thumb||im.src)?'active':''}" aria-label="选择第 ${i+1} 张图片"><img src="${esc(im.thumb||im.src)}" alt="${esc(im.label||p.title)}"></button>`).join('')}</div><div class="modal-actions"><button data-close>取消</button></div>`);$('#modal').querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{const image=p.images[Number(b.dataset.pick)];p.orbitCover=image.thumb||image.src;changed();$('#modal').close();render();});}
 document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
 if(b.dataset.page){page=b.dataset.page;query='';filter='all';render();}
