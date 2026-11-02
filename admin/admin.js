@@ -41,7 +41,7 @@ function renderHello(){$('#content').innerHTML=`<div class="form-layout"><sectio
 function editProject(id){
  const p=data.projects.find(p=>p.id===id);
  let images=structuredClone(p?.images||[]), busy=false, alive=true;
- openModal(`<h2>${p?'编辑项目':'新增项目'}</h2><p>设置项目信息并添加图片，第一张图片自动作为封面。</p><form id="project-form"><div class="project-fields"><label class="field">英文项目名<input name="en" required maxlength="80" value="${esc(p?.en||'')}" placeholder="PROJECT NAME"></label><label class="field">中文项目名<input name="title" required maxlength="80" value="${esc(p?.title||'')}" placeholder="为作品起一个名字"></label><label class="field">项目介绍<textarea name="summary" maxlength="2000">${esc(p?.summary||'')}</textarea></label><label class="field">项目分类<select name="category"><option value="">未分类</option>${data.categories.map(c=>`<option value="${esc(c.id)}" ${p?.categoryIds[0]===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label><div class="upload-heading"><span>项目图片</span><span id="upload-count" aria-live="polite"></span></div><div class="upload-zone" id="upload-zone"><span class="upload-icon" aria-hidden="true">↑</span><strong>将图片拖到这里，或点击选择</strong><span>支持一次多选，也可以分批添加</span><label class="upload-button">选择图片<input id="project-files" type="file" multiple accept="image/jpeg,image/png,image/webp" aria-label="选择项目图片（可多选）"></label><small>JPG、PNG、WebP · 每张不超过 10MB · 原图无压缩</small></div><p class="upload-hint">长按图片拖动可交换位置，第一张自动作为封面；右上角可删除图片。保存草稿后，点击「发布到网站」更新公开网站。</p><div id="upload-grid" class="upload-grid"></div><span id="sort-status" class="sr-only" role="status" aria-live="polite"></span><p id="form-error" role="alert"></p></div><div class="modal-actions"><button type="button" data-close>取消</button><button type="submit" class="primary" id="project-submit">${p?'保存项目':'创建项目'}</button></div></form>`);
+ openModal(`<h2>${p?'编辑项目':'新增项目'}</h2><p>设置项目信息并添加图片，第一张图片自动作为封面。</p><form id="project-form"><div class="project-fields"><label class="field">英文项目名<input name="en" required maxlength="80" value="${esc(p?.en||'')}" placeholder="PROJECT NAME"></label><label class="field">中文项目名<input name="title" required maxlength="80" value="${esc(p?.title||'')}" placeholder="为作品起一个名字"></label><label class="field">项目介绍<textarea name="summary" maxlength="2000">${esc(p?.summary||'')}</textarea></label><label class="field">项目分类<select name="category"><option value="">未分类</option>${data.categories.map(c=>`<option value="${esc(c.id)}" ${p?.categoryIds[0]===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label><div class="upload-heading"><span>项目图片</span><span id="upload-count" aria-live="polite"></span></div><div class="upload-zone" id="upload-zone"><span class="upload-icon" aria-hidden="true">↑</span><strong>将图片拖到这里，或点击选择</strong><span>支持一次多选，也可以分批添加</span><label class="upload-button">选择图片<input id="project-files" type="file" multiple accept="image/jpeg,image/png,image/webp" aria-label="选择项目图片（可多选）"></label><small>JPG、PNG、WebP · 每张不超过 10MB · 原图无压缩</small></div><p class="upload-hint">按住图片拖动到目标位置，松开即可交换，第一张自动作为封面；右上角可删除图片。保存草稿后，点击「发布到网站」更新公开网站。</p><div id="upload-grid" class="upload-grid"></div><span id="sort-status" class="sr-only" role="status" aria-live="polite"></span><p id="form-error" role="alert"></p></div><div class="modal-actions"><button type="button" data-close>取消</button><button type="submit" class="primary" id="project-submit">${p?'保存项目':'创建项目'}</button></div></form>`);
  const form=$('#project-form'),zone=$('#upload-zone'),input=$('#project-files'),grid=$('#upload-grid'),error=$('#form-error'),submit=$('#project-submit'),modal=$('#modal');
  function renderImages(){
   $('#upload-count').textContent=`已选 ${images.length} 张`;
@@ -58,34 +58,45 @@ function editProject(id){
  }
  function updateTarget(){
   if(!sorting?.active)return;
-  grid.querySelectorAll('.sort-target').forEach(el=>el.classList.remove('sort-target'));
-  const tile=document.elementFromPoint(sorting.x,sorting.y)?.closest('[data-sort-index]');
-  sorting.to=tile&&grid.contains(tile)?Number(tile.dataset.sortIndex):-1;
-  if(sorting.to!==sorting.from&&sorting.to>=0)tile.classList.add('sort-target');
+  const r=grid.getBoundingClientRect(),f=form.querySelector('.project-fields').getBoundingClientRect();
+  const bounds={left:Math.max(r.left,f.left),right:Math.min(r.right,f.right),top:Math.max(r.top,f.top),bottom:Math.min(r.bottom,f.bottom)};
+  let target=null,best=Infinity;
+  // Geometry includes the gaps between unequal-height cards and ignores the drag preview.
+  if(sorting.x>=bounds.left&&sorting.x<=bounds.right&&sorting.y>=bounds.top&&sorting.y<=bounds.bottom){
+   grid.querySelectorAll('[data-sort-index]').forEach(tile=>{
+    const box=tile.getBoundingClientRect();if(box.bottom<=bounds.top||box.top>=bounds.bottom)return;
+    const dx=Math.max(box.left-sorting.x,0,sorting.x-box.right),dy=Math.max(box.top-sorting.y,0,sorting.y-box.bottom),distance=dx*dx+dy*dy;
+    if(distance<best){best=distance;target=tile;}
+   });
+  }
+  const to=target?Number(target.dataset.sortIndex):-1;
+  if(to!==sorting.to){grid.querySelector('.sort-target')?.classList.remove('sort-target');sorting.to=to;if(to>=0&&to!==sorting.from)target.classList.add('sort-target');}
   sorting.ghost.style.left=`${sorting.x-sorting.offsetX}px`;
   sorting.ghost.style.top=`${sorting.y-sorting.offsetY}px`;
  }
- function autoScroll(){
+ function autoScroll(now){
   if(!sorting?.active)return;
+  const elapsed=Math.min(32,now-(sorting.lastFrame||now));sorting.lastFrame=now;
   const fields=form.querySelector('.project-fields'),r=grid.getBoundingClientRect(),f=fields.getBoundingClientRect();
-  const top=Math.max(r.top,f.top),bottom=Math.min(r.bottom,f.bottom);
-  if(sorting.x>=r.left&&sorting.x<=r.right){
-   const step=sorting.y<top+30?-7:sorting.y>bottom-30?7:0;
-   if(step){const before=grid.scrollTop;grid.scrollTop+=step;if(grid.scrollTop===before)fields.scrollTop+=step;updateTarget();}
+  const top=Math.max(r.top,f.top),bottom=Math.min(r.bottom,f.bottom),edge=Math.min(60,(bottom-top)/3);
+  if(edge>0&&sorting.x>=r.left&&sorting.x<=r.right&&sorting.y>=top-24&&sorting.y<=bottom+24){
+   const speed=sorting.y<top+edge?-Math.min(1,(top+edge-sorting.y)/edge):sorting.y>bottom-edge?Math.min(1,(sorting.y-bottom+edge)/edge):0;
+   const step=speed*elapsed*.65;
+   if(step){const before=grid.scrollTop;grid.scrollTop+=step;const used=grid.scrollTop-before;if((step<0&&r.top<f.top)||(step>0&&r.bottom>f.bottom))fields.scrollTop+=step-used;}
   }
-  scrollFrame=requestAnimationFrame(autoScroll);
+  updateTarget();scrollFrame=requestAnimationFrame(autoScroll);
  }
  function activateSort(){
   if(!sorting||!alive||busy)return;
   sorting.active=true;suppressClick=true;
   const r=sorting.tile.getBoundingClientRect();
-  sorting.offsetX=sorting.x-r.left;sorting.offsetY=sorting.y-r.top;
+  sorting.offsetX=sorting.startX-r.left;sorting.offsetY=sorting.startY-r.top;
   sorting.ghost=sorting.tile.cloneNode(true);sorting.ghost.classList.add('sort-ghost');sorting.ghost.setAttribute('aria-hidden','true');
   sorting.ghost.removeAttribute('data-sort-index');sorting.ghost.style.width=`${r.width}px`;
-  sorting.ghost.querySelectorAll('button,[tabindex]').forEach(el=>el.tabIndex=-1);
+  sorting.ghost.querySelectorAll('button').forEach(el=>el.remove());sorting.ghost.querySelectorAll('[tabindex]').forEach(el=>el.tabIndex=-1);
   modal.append(sorting.ghost);sorting.tile.classList.add('is-sorting');grid.classList.add('sorting');
   $('#sort-status').textContent='已拾起图片，拖到另一张图片上松开即可交换';
-  updateTarget();autoScroll();
+  updateTarget();scrollFrame=requestAnimationFrame(autoScroll);
  }
  function finishSort(commit){
   clearTimeout(pressTimer);cancelAnimationFrame(scrollFrame);
@@ -101,13 +112,13 @@ function editProject(id){
   if(busy||sorting||e.button!==0||!e.isPrimary)return;
   const image=e.target.closest('.sort-handle'),tile=image?.closest('[data-sort-index]');if(!tile)return;
   sorting={pointerId:e.pointerId,from:Number(tile.dataset.sortIndex),to:-1,tile,x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY,active:false};
-  grid.setPointerCapture(e.pointerId);pressTimer=setTimeout(activateSort,300);
+  grid.setPointerCapture(e.pointerId);pressTimer=setTimeout(activateSort,e.pointerType==='mouse'?160:220);
  });
  grid.addEventListener('pointermove',e=>{
   if(!sorting||e.pointerId!==sorting.pointerId)return;
   sorting.x=e.clientX;sorting.y=e.clientY;
-  if(!sorting.active&&Math.hypot(sorting.x-sorting.startX,sorting.y-sorting.startY)>8){
-   if(e.pointerType==='mouse'){clearTimeout(pressTimer);activateSort();}else{finishSort(false);return;}
+  if(!sorting.active&&Math.hypot(sorting.x-sorting.startX,sorting.y-sorting.startY)>4){
+   clearTimeout(pressTimer);activateSort();
   }
   if(sorting?.active){e.preventDefault();updateTarget();}
  });
