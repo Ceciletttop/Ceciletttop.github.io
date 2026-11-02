@@ -67,3 +67,6 @@ footer{display:flex;justify-content:space-between;padding:20px var(--page-gutter
 
 footer{padding-top:8px;padding-bottom:14px}
 @media(max-width:600px){footer{padding-top:3.2px;padding-bottom:12px}}
+
+.brand-logo{display:block;width:78px;height:auto;flex-shrink:0}
+@media(max-width:600px){.brand-logo{width:58px}}
