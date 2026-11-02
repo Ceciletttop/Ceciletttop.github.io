@@ -31,6 +31,15 @@ async function preparePublication(snapshot,onMedia){
  }
  return visit(snapshot);
 }
+function publicationError(path,status,detail){
+ const message=String(detail?.message||'').slice(0,500);
+ const errors=Array.isArray(detail?.errors)?detail.errors.map(e=>typeof e==='string'?e:e.message||e.code||'').filter(Boolean).join('；').slice(0,500):'';
+ const reason=[message,errors].filter(Boolean).join('；');
+ if(status===401)return '发布授权已失效，请重新填写有效的 GitHub 令牌。草稿仍保留。';
+ if(path==='git/refs/heads/main'&&(status===409||status===422))return '提交网站更新失败：'+(reason||'分支可能已更新，请重试。')+'（草稿仍保留）';
+ const stage=path==='git/blobs'?'上传媒体文件':path==='git/trees'?'生成网站文件清单':path==='git/commits'?'创建发布记录':'检查网站版本';
+ return `${stage}失败（GitHub ${status}）：${reason||'服务器未提供详细原因'}。草稿仍保留。`;
+}
 function parsePublishedContent(source){const prefix='window.SITE_CONTENT = ';if(!source.startsWith(prefix))throw new Error('网站配置格式不兼容');return JSON.parse(source.slice(prefix.length).trim().replace(/;$/,''));}
 $('#publish').onclick=()=>{
  if(initializing||publishing)return;
@@ -47,9 +56,9 @@ $('#publish').onclick=()=>{
   const preventClose=e=>e.preventDefault();$('#modal').addEventListener('cancel',preventClose);
   const report=t=>{status.textContent=t;};
   async function api(path,method='GET',body){
-   const response=await fetch(`https://api.github.com/repos/${publishRepo}/${path}`,{method,headers:{Authorization:`Bearer ${token}`,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28',...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});
+   const response=await fetch(`https://api.github.com/repos/${publishRepo}/${path}`,{method,cache:'no-store',headers:{Authorization:`Bearer ${token}`,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28',...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});
    if(response.status===401){clearPublishToken();}
-   if(!response.ok)throw new Error(response.status===401||response.status===403?'授权失败，请检查令牌是否有效，并拥有此仓库的 Contents 读写权限。':response.status===409||response.status===422?'网站刚被其他操作更新，本次未覆盖；请刷新检查后重试。':`发布请求失败（${response.status}），草稿仍保留。`);
+   if(!response.ok){let detail;try{detail=await response.json();}catch{}throw new Error(publicationError(path,response.status,detail));}
    return response.json();
   }
   let committed=false;
@@ -62,7 +71,7 @@ $('#publish').onclick=()=>{
    if(remote.revision!==expected)throw new Error('线上已有更新的内容。为保护双方修改，本次没有发布。请先导出当前草稿备份，再在新浏览器窗口查看线上版本并核对。');
    const tree=await api('git/trees/'+head+'?recursive=1');if(tree.truncated)throw new Error('文件清单过大，无法安全确认图片，请联系维护者发布。');
    const exists=new Set(tree.tree.map(x=>x.path)),entries=[];let count=0;
-   const output=await preparePublication(snapshot,async(path,content)=>{if(exists.has(path))return;report(`正在上传媒体文件 ${++count}…（不压缩）`);const blob=await api('git/blobs','POST',{content,encoding:'base64'});entries.push({path,mode:'100644',type:'blob',sha:blob.sha});exists.add(path);});
+   const output=await preparePublication(snapshot,async(path,content)=>{if(exists.has(path))return;report(`正在上传媒体文件 ${++count}（约 ${(content.length*3/4/1000000).toFixed(1)}MB）…`);const blob=await api('git/blobs','POST',{content,encoding:'base64'});entries.push({path,mode:'100644',type:'blob',sha:blob.sha});exists.add(path);});
    output.revision=crypto.randomUUID();
    entries.push({path:'site-content.js',mode:'100644',type:'blob',content:'window.SITE_CONTENT = '+JSON.stringify(output)+';\n'});
    report('媒体文件已上传，正在提交网站更新…');
