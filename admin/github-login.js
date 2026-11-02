@@ -11,7 +11,7 @@ window.PortfolioLogin=(()=>{
    const auth=new netlify.default({site_id:siteID});let timer,handshake,reply,done=false;
    function finish(error,result){if(done)return;done=true;clearInterval(timer);window.removeEventListener('message',handshake);window.removeEventListener('message',reply);auth.authWindow?.close();error?reject(error):resolve(result);}
    // Bind both phases to the exact popup, not just the provider's origin.
-   auth.handshakeCallback=()=>handshake=e=>{if(e.origin!==origin||e.source!==auth.authWindow||e.data!=='authorizing:github')return;window.removeEventListener('message',handshake);window.addEventListener('message',reply);auth.authWindow.postMessage(e.data,origin);};
+   auth.handshakeCallback=()=>handshake=e=>{if(e.origin===origin&&typeof e.data==='string')document.querySelector('#publish-status').textContent='收到登录服务回调：'+(e.source===auth.authWindow?'窗口匹配':'窗口不匹配')+'，'+(e.data==='authorizing:github'?'握手消息':'其他消息');if(e.origin!==origin||e.source!==auth.authWindow||e.data!=='authorizing:github')return;window.removeEventListener('message',handshake);window.addEventListener('message',reply);document.querySelector('#publish-status').textContent='已连接登录窗口，等待 GitHub 授权…';auth.authWindow.postMessage(e.data,origin);};
    reply=async e=>{
     if(e.origin!==origin||e.source!==auth.authWindow||typeof e.data!=='string')return;
     const prefix='authorization:github:success:';
