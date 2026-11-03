@@ -16,7 +16,7 @@ body.project-view{overflow-x:hidden;overflow-y:auto}
 .project-view .site-header .brand{display:none}
 .project-view .close-project{top:0}
 .project-scene{display:flex;flex-direction:column;height:auto;min-height:100svh;padding:clamp(70px,8svh,100px) 0 32px;overflow:visible}
-.project-intro{width:min(1000px,calc(100% - 2 * var(--edge)));margin:0 auto 51px;text-align:center}
+.project-intro{width:min(1000px,calc(100% - 2 * var(--edge)));margin:0 auto 66.3px;text-align:center}
 .project-intro .project-title{position:static;max-width:none;font-family:InterHero,Arial,sans-serif;font-size:clamp(44px,6vw,100px);font-weight:500;line-height:1.02;letter-spacing:-.055em;color:var(--detail-ink);text-shadow:none;overflow-wrap:normal;text-wrap:balance}
 .project-intro .project-copy{position:static;width:min(640px,100%);margin:20px auto 0;font-size:clamp(13px,1.05vw,17px);line-height:1.8;color:var(--detail-copy);text-wrap:pretty}
 .project-intro .project-copy p{margin:0 0 14px}
@@ -25,7 +25,7 @@ body.project-view{overflow-x:hidden;overflow-y:auto}
 .project-controls .stage-controls{position:static;transform:none}
 .project-controls .gallery-play{position:static;flex:none}
 .project-scene>.next-project{position:static;justify-content:center;flex-wrap:wrap;margin:24px auto 0;gap:24px}
-@media(max-width:600px){.project-intro{width:calc(100% - 40px);margin-bottom:42px}.project-intro .project-title{font-size:clamp(36px,9vw,54px)}.project-intro .project-copy{font-size:13px;line-height:1.8;margin-top:18px}.project-controls{gap:18px}.project-view .site-header{inset:18px 20px auto}.project-view .close-project{font-size:32px}}
+@media(max-width:600px){.project-intro{width:calc(100% - 40px);margin-bottom:54.6px}.project-intro .project-title{font-size:clamp(36px,9vw,54px)}.project-intro .project-copy{font-size:13px;line-height:1.8;margin-top:18px}.project-controls{gap:18px}.project-view .site-header{inset:18px 20px auto}.project-view .close-project{font-size:32px}}
 
 /* The same thin crossed lines and black capsule used by the home menu. */
 .detail-actions{position:fixed;top:28px;right:40px;z-index:400;display:flex;align-items:center;gap:22px;padding:9px 14px 9px 20px;border-radius:50px;background:#08080a;color:#fff;font-family:Swizzy,Arial,sans-serif;pointer-events:auto}
