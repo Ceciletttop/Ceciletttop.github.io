@@ -37,3 +37,6 @@ body.project-view{overflow-x:hidden;overflow-y:auto}
 .detail-theme-toggle{display:grid;place-items:center;width:38px;height:38px;padding:0 0 3px;border:1px solid #ffffff20;border-radius:50%;background:transparent;color:#fff;font:28px/1 Arial}
 @media(max-width:900px){.detail-actions{right:25px;top:25px}}
 @media(max-width:600px){.detail-actions{right:20px;top:22px;gap:17px;padding:7px 10px 7px 18px}.detail-actions .close-project,.detail-actions .dialog-close{font-size:16px;height:32px;gap:10px}.close-symbol{width:23px;height:23px}.detail-theme-toggle{width:32px;height:32px;font-size:24px}}
+
+/* Keep the Close control free of rectangular focus outlines during arrow navigation. */
+.detail-actions .close-project:focus,.detail-actions .dialog-close:focus{outline:none}
