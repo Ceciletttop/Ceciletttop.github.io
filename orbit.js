@@ -2,7 +2,12 @@
 let onscreen=true;function updatePause(){orbit.classList.toggle('is-paused',document.hidden||dialog.open||!onscreen);}function syncOrbit(){const parent=orbit.getAnimations().find(a=>a.animationName==='orbit-turn');if(parent)orbit.querySelectorAll('.orbit-card img').forEach(card=>card.getAnimations().forEach(a=>{if(a.animationName==='orbit-image-upright')a.currentTime=parent.currentTime;}));updatePause();}
 new IntersectionObserver(entries=>{onscreen=entries[0].isIntersecting;updatePause();},{threshold:.05}).observe(document.querySelector('.orbit-stage'));new MutationObserver(updatePause).observe(dialog,{attributes:true,attributeFilter:['open']});document.addEventListener('visibilitychange',updatePause);
 function layoutGallery(){
-  const cards=[...grid.querySelectorAll('.work-card')],style=getComputedStyle(grid);
+  const originalCards=[...grid.querySelectorAll('.work-card')],style=getComputedStyle(grid);
+  originalCards.forEach((card,index)=>{if(!card.hasAttribute('data-gallery-order'))card.dataset.galleryOrder=index;});
+  // Wide, shallow covers follow taller covers; preserve the chosen order within each group.
+  const isShallow=card=>(Number(card.style.getPropertyValue('--image-ratio'))||1)>=1.4;
+  const cards=[...originalCards].sort((a,b)=>Number(isShallow(a))-Number(isShallow(b))||Number(a.dataset.galleryOrder)-Number(b.dataset.galleryOrder));
+  if(cards.some((card,index)=>card!==originalCards[index]))cards.forEach(card=>grid.append(card));
   const width=grid.clientWidth-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight),gap=parseFloat(style.columnGap)||14;
   if(width<=0)return;
   const columns=Number(style.getPropertyValue('--work-columns'))||6;
