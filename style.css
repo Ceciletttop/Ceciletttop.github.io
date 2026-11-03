@@ -86,3 +86,5 @@ footer{padding-top:8px;padding-bottom:14px}
 @media(max-width:1100px){.selected-section .work-grid{--work-columns:4}}
 @media(max-width:740px){.selected-section .work-grid{--work-columns:2}}
 @media(max-width:400px){.selected-section .work-grid{--work-columns:1}}
+
+.about-meta.about-custom-blocks{grid-template-columns:repeat(3,minmax(0,1fr));gap:35px 30px}.about-custom-blocks .about-block-title{white-space:normal;overflow-wrap:anywhere}.about-custom-blocks .about-block-content{overflow-wrap:anywhere}.about-block-content a{color:inherit}@media(max-width:740px){.about-meta.about-custom-blocks{grid-template-columns:1fr;gap:30px}}

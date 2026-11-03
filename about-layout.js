@@ -32,6 +32,8 @@
       const zoom = parseFloat(getComputedStyle(element).zoom) || 1;
       element.style.transform = `translate(${x / zoom}px, ${y / zoom}px)`;
     });
+    const textBottom = Math.max(...text.map(element => element.getBoundingClientRect().bottom));
+    container.style.height = `${Math.max(pictureBottom + bottomGap * .2, textBottom + 40) - containerTop}px`;
   }
   function schedule() {
     if (!pending) {
