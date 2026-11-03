@@ -1,6 +1,6 @@
 (() => {
   const collage = document.querySelector('.about-collage');
-  if (!collage) return;
+  if (!collage || collage.closest('.hello-custom')) return;
   const photos = [...collage.querySelectorAll('.about-collage-photo')];
   const text = [collage.querySelector('.about-greeting'), collage.querySelector('.about-meta')];
   if (photos.length !== 4 || text.some(element => !element)) return;
