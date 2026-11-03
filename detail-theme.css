@@ -18,7 +18,7 @@ body.project-view{overflow-x:hidden;overflow-y:auto}
 .project-scene{display:flex;flex-direction:column;height:auto;min-height:100svh;padding:clamp(70px,8svh,100px) 0 32px;overflow:visible}
 .project-intro{width:min(1000px,calc(100% - 2 * var(--edge)));margin:0 auto 66.3px;text-align:center}
 .project-intro .project-title{position:static;max-width:none;font-family:InterHero,Arial,sans-serif;font-size:clamp(44px,6vw,100px);font-weight:500;line-height:1.02;letter-spacing:-.055em;color:var(--detail-ink);text-shadow:none;overflow-wrap:normal;text-wrap:balance}
-.project-intro .project-copy{position:static;width:min(640px,100%);margin:20px auto 0;font-size:clamp(13px,1.05vw,17px);line-height:1.8;color:var(--detail-copy);text-wrap:pretty}
+.project-intro .project-copy{position:static;width:min(960px,100%);margin:20px auto 0;font-size:clamp(13px,1.05vw,17px);line-height:1.8;color:var(--detail-copy);text-wrap:pretty}
 .project-intro .project-copy p{margin:0 0 14px}
 .project-scene>.media-stage{position:relative;inset:auto;flex:none;width:91%;height:45svh;margin:0 auto}
 .project-controls{display:flex;justify-content:center;align-items:center;gap:24px;padding:24px 0 0}
