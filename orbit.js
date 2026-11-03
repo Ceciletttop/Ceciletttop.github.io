@@ -2,22 +2,26 @@
 let onscreen=true;function updatePause(){orbit.classList.toggle('is-paused',document.hidden||dialog.open||!onscreen);}function syncOrbit(){const parent=orbit.getAnimations().find(a=>a.animationName==='orbit-turn');if(parent)orbit.querySelectorAll('.orbit-card img').forEach(card=>card.getAnimations().forEach(a=>{if(a.animationName==='orbit-image-upright')a.currentTime=parent.currentTime;}));updatePause();}
 new IntersectionObserver(entries=>{onscreen=entries[0].isIntersecting;updatePause();},{threshold:.05}).observe(document.querySelector('.orbit-stage'));new MutationObserver(updatePause).observe(dialog,{attributes:true,attributeFilter:['open']});document.addEventListener('visibilitychange',updatePause);
 function layoutGallery(){
-  const cards=[...grid.querySelectorAll('.work-card')];if(!cards.length)return;
-  const style=getComputedStyle(grid),width=grid.clientWidth-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight),gap=parseFloat(style.columnGap)||12;
+  const cards=[...grid.querySelectorAll('.work-card')],style=getComputedStyle(grid);
+  const width=grid.clientWidth-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight),gap=parseFloat(style.columnGap)||14;
   if(width<=0)return;
-  if(cards.length===1){
-    const card=cards[0],ratio=Number(card.style.getPropertyValue('--image-ratio'))||1;
-    const cardWidth=Math.min(width,window.innerWidth/4);
-    card.style.setProperty('--card-width',cardWidth+'px');
-    card.style.setProperty('--card-height',(cardWidth/ratio)+'px');
-    return;
-  }
-
-  const ratios=cards.map(c=>Number(c.style.getPropertyValue('--image-ratio'))||1),target=Math.min(360,Math.max(150,width/4.6)),cost=Array(cards.length+1).fill(Infinity),next=[];cost[cards.length]=0;
-  // Choose balanced rows, including the final row, then fit every row exactly.
-  for(let start=cards.length-1;start>=0;start--){let sum=0;for(let end=start;end<cards.length;end++){sum+=ratios[end];const count=end-start+1,available=width-gap*(count-1);if(available<=0)break;const height=available/sum,score=(height-target)**2*count+cost[end+1];if(score<cost[start]){cost[start]=score;next[start]=end+1;}}}
-  for(let start=0;start<cards.length;){const end=next[start],row=ratios.slice(start,end),sum=row.reduce((a,b)=>a+b,0),height=(width-gap*(row.length-1))/sum;let used=0;for(let i=start;i<end;i++){const cardWidth=i===end-1?width-gap*(row.length-1)-used:height*ratios[i];cards[i].style.setProperty('--card-width',cardWidth+'px');cards[i].style.setProperty('--card-height',height+'px');used+=cardWidth;}start=end;}
+  const columns=Number(style.getPropertyValue('--work-columns'))||6;
+  const cardWidth=cards.length===1?Math.min(width,window.innerWidth/4):(width-gap*(columns-1))/columns;
+  const heights=Array(columns).fill(0);
+  cards.forEach(card=>card.style.setProperty('--card-width',cardWidth+'px'));
+  cards.forEach(card=>{
+    const shortest=Math.min(...heights),column=heights.findIndex(height=>height<=shortest+2);
+    card.style.left=(parseFloat(style.paddingLeft)+column*(cardWidth+gap))+'px';
+    card.style.top=(parseFloat(style.paddingTop)+heights[column])+'px';
+    heights[column]+=card.getBoundingClientRect().height+gap;
+  });
+  grid.style.height=(Math.max(0,...heights)-(cards.length?gap:0)+parseFloat(style.paddingTop)+parseFloat(style.paddingBottom))+'px';
 }new ResizeObserver(layoutGallery).observe(grid);
+document.fonts.ready.then(layoutGallery);
+grid.addEventListener('load',event=>{
+  const img=event.target,card=img.closest?.('.work-card');
+  if(card&&img.naturalWidth&&img.naturalHeight){card.style.setProperty('--image-ratio',img.naturalWidth/img.naturalHeight);layoutGallery();}
+},true);
 function bindProjectButtons(scope){scope.querySelectorAll('[data-project]').forEach(button=>{const p=projects.find(p=>p.id===button.dataset.project);button.addEventListener('click',()=>openProject(p));if(button.classList.contains('orbit-card')){button.addEventListener('mouseenter',()=>{label.textContent=p.en;});button.addEventListener('mouseleave',()=>{label.textContent='';});button.addEventListener('focus',()=>{label.textContent=p.en;});button.addEventListener('blur',()=>{label.textContent='';});}});}
 function renderOrbit(){const ring=window.SITE_CONTENT.selected.map(id=>projects.find(p=>p.id===id)).filter(Boolean);orbit.innerHTML=ring.map((p,i)=>{const angle=(-100+i*360/ring.length)*Math.PI/180;return `<button class="orbit-card" data-project="${p.id}" style="--x:calc(var(--radius-x) * ${Math.cos(angle).toFixed(5)});--y:calc(var(--radius-y) * ${Math.sin(angle).toFixed(5)});--angle:${-10+i*360/ring.length}deg" aria-label="查看作品：${escape(p.en)}"><img src="${escape(p.orbitCover||p.coverThumb||p.cover)}" alt="${escape(p.title)}" decoding="async"></button>`}).join('');bindProjectButtons(orbit);syncOrbit();}
 function render(){const list=projects.filter(match[category]);grid.innerHTML=list.map(p=>{const image=p.images.find(i=>i.src===p.cover),ratio=image?image.width/image.height:1;return `<button class="work-card" data-project="${p.id}" style="--image-ratio:${ratio}" aria-label="查看作品：${escape(p.en)}"><span class="work-image"><img src="${p.cover}" alt="${escape(p.title)}" loading="lazy" ${image?`width="${image.width}" height="${image.height}"`:''}></span><span class="project-arrow" aria-hidden="true">↗</span><span class="work-caption"><strong>${escape(p.en.charAt(0).toUpperCase()+p.en.slice(1).toLowerCase())}</strong><small>${escape(p.title)}</small></span></button>`;}).join('');bindProjectButtons(grid);layoutGallery();}
