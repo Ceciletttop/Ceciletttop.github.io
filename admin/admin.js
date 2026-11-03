@@ -83,29 +83,43 @@ function editProject(id){
   if(!sorting?.active)return;
   const r=grid.getBoundingClientRect(),f=form.querySelector('.project-fields').getBoundingClientRect();
   const bounds={left:Math.max(r.left,f.left),right:Math.min(r.right,f.right),top:Math.max(r.top,f.top),bottom:Math.min(r.bottom,f.bottom)};
+  const tiles=[...grid.querySelectorAll('[data-sort-index]')].map(tile=>({tile,box:tile.getBoundingClientRect()}));
+  const rows=[...new Set(tiles.map(t=>Math.round(t.box.top)))].sort((a,b)=>a-b);
   let target=null,best=Infinity;
-  // Geometry includes the gaps between unequal-height cards and ignores the drag preview.
-  if(sorting.x>=bounds.left&&sorting.x<=bounds.right&&sorting.y>=bounds.top&&sorting.y<=bounds.bottom){
-   grid.querySelectorAll('[data-sort-index]').forEach(tile=>{
-    const box=tile.getBoundingClientRect();if(box.bottom<=bounds.top||box.top>=bounds.bottom)return;
-    const dx=Math.max(box.left-sorting.x,0,sorting.x-box.right),dy=Math.max(box.top-sorting.y,0,sorting.y-box.bottom),distance=dx*dx+dy*dy;
-    if(distance<best){best=distance;target=tile;}
-   });
+  if(sorting.x>=bounds.left-16&&sorting.x<=bounds.right+16&&sorting.y>=bounds.top-8&&sorting.y<=bounds.bottom+8){
+   for(const item of tiles){
+    const {box}=item,row=rows.indexOf(Math.round(box.top)),next=rows[row+1];
+    const bottom=next??Math.max(...tiles.filter(t=>Math.abs(t.box.top-box.top)<2).map(t=>t.box.bottom));
+    if(bottom<=bounds.top||box.top>=bounds.bottom)continue;
+    const dx=Math.max(box.left-sorting.x,0,sorting.x-box.right),dy=Math.max(box.top-sorting.y,0,sorting.y-bottom);
+    const distance=dx*dx+dy*dy;
+    if(distance<best){best=distance;target=item;}
+   }
   }
-  const to=target?Number(target.dataset.sortIndex):-1;
-  if(to!==sorting.to){grid.querySelector('.sort-target')?.classList.remove('sort-target');sorting.to=to;if(to>=0&&to!==sorting.from)target.classList.add('sort-target');}
-  sorting.ghost.style.left=`${sorting.x-sorting.offsetX}px`;
-  sorting.ghost.style.top=`${sorting.y-sorting.offsetY}px`;
+  grid.querySelector('.sort-target')?.classList.remove('sort-target');
+  sorting.to=target?Number(target.tile.dataset.sortIndex):-1;
+  const valid=target&&sorting.to!==sorting.from;
+  sorting.indicator.hidden=!valid;
+  if(valid){
+   target.tile.classList.add('sort-target');
+   const top=Math.max(target.box.top,bounds.top),bottom=Math.min(target.box.bottom,bounds.bottom);
+   sorting.indicator.style.cssText='position:fixed;left:'+(target.box.left+2)+'px;top:'+top+'px;height:'+Math.max(28,bottom-top)+'px';
+   sorting.indicator.textContent='插入到此图前';
+  }
+  sorting.ghost.style.left=(sorting.x+18)+'px';sorting.ghost.style.top=(sorting.y+18)+'px';
  }
  function autoScroll(now){
   if(!sorting?.active)return;
   const elapsed=Math.min(32,now-(sorting.lastFrame||now));sorting.lastFrame=now;
   const fields=form.querySelector('.project-fields'),r=grid.getBoundingClientRect(),f=fields.getBoundingClientRect();
-  const top=Math.max(r.top,f.top),bottom=Math.min(r.bottom,f.bottom),edge=Math.min(60,(bottom-top)/3);
-  if(edge>0&&sorting.x>=r.left&&sorting.x<=r.right&&sorting.y>=top-24&&sorting.y<=bottom+24){
+  const top=Math.max(r.top,f.top),bottom=Math.min(r.bottom,f.bottom),edge=24;
+  if(bottom>top&&sorting.x>=r.left&&sorting.x<=r.right&&sorting.y>=top-8&&sorting.y<=bottom+8){
    const speed=sorting.y<top+edge?-Math.min(1,(top+edge-sorting.y)/edge):sorting.y>bottom-edge?Math.min(1,(sorting.y-bottom+edge)/edge):0;
-   const step=speed*elapsed*.65;
-   if(step){const before=grid.scrollTop;grid.scrollTop+=step;const used=grid.scrollTop-before;if((step<0&&r.top<f.top)||(step>0&&r.bottom>f.bottom))fields.scrollTop+=step-used;}
+   if(speed){
+    const step=speed*elapsed*.3,before=grid.scrollTop;
+    grid.scrollTop+=step;
+    if(grid.scrollTop===before&&((step<0&&r.top<f.top)||(step>0&&r.bottom>f.bottom)))fields.scrollTop+=step;
+   }
   }
   updateTarget();scrollFrame=requestAnimationFrame(autoScroll);
  }
@@ -115,37 +129,38 @@ function editProject(id){
   const r=sorting.tile.getBoundingClientRect();
   sorting.offsetX=sorting.startX-r.left;sorting.offsetY=sorting.startY-r.top;
   sorting.ghost=sorting.tile.cloneNode(true);sorting.ghost.classList.add('sort-ghost');sorting.ghost.setAttribute('aria-hidden','true');
-  sorting.ghost.removeAttribute('data-sort-index');sorting.ghost.style.width=`${r.width}px`;
+  sorting.ghost.removeAttribute('data-sort-index');sorting.ghost.style.width="88px";
   sorting.ghost.querySelectorAll('button').forEach(el=>el.remove());sorting.ghost.querySelectorAll('[tabindex]').forEach(el=>el.tabIndex=-1);
-  modal.append(sorting.ghost);sorting.tile.classList.add('is-sorting');grid.classList.add('sorting');
+  sorting.indicator=document.createElement("div");sorting.indicator.className="sort-insert-marker";sorting.indicator.setAttribute("aria-hidden","true");sorting.indicator.hidden=true;modal.append(sorting.ghost,sorting.indicator);sorting.tile.classList.add('is-sorting');grid.classList.add('sorting');
   $('#sort-status').textContent='已拾起图片，拖到目标图片上松开，插入到它的前面';
   updateTarget();scrollFrame=requestAnimationFrame(autoScroll);
  }
  function finishSort(commit){
   clearTimeout(pressTimer);cancelAnimationFrame(scrollFrame);
   if(!sorting)return;
-  const {from,to,active,pointerId,ghost}=sorting;sorting=null;
+  const {from,to,active,pointerId,ghost,indicator}=sorting;sorting=null;
   if(grid.hasPointerCapture(pointerId))grid.releasePointerCapture(pointerId);
-  ghost?.remove();grid.classList.remove('sorting');grid.querySelectorAll('.is-sorting,.sort-target').forEach(el=>el.classList.remove('is-sorting','sort-target'));
+  ghost?.remove();indicator?.remove();grid.classList.remove('sorting');grid.querySelectorAll('.is-sorting,.sort-target').forEach(el=>el.classList.remove('is-sorting','sort-target'));
   if(commit&&active&&to>=0&&to!==from)moveImage(from,to);
   else if(active)$('#sort-status').textContent='顺序未改变';
   setTimeout(()=>{suppressClick=false;},0);
  }
  grid.addEventListener('pointerdown',e=>{
   if(busy||sorting||e.button!==0||!e.isPrimary)return;
-  const image=e.target.closest('.sort-handle'),tile=image?.closest('[data-sort-index]');if(!tile)return;
+  const tile=e.target.closest('[data-sort-index]');if(!tile||e.target.closest('button,input,a'))return;
+  if(e.pointerType==='mouse')e.preventDefault();
   sorting={pointerId:e.pointerId,from:Number(tile.dataset.sortIndex),to:-1,tile,x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY,active:false};
-  grid.setPointerCapture(e.pointerId);pressTimer=setTimeout(activateSort,e.pointerType==='mouse'?160:220);
+  grid.setPointerCapture(e.pointerId);pressTimer=setTimeout(activateSort,e.pointerType==='mouse'?100:180);
  });
  grid.addEventListener('pointermove',e=>{
   if(!sorting||e.pointerId!==sorting.pointerId)return;
   sorting.x=e.clientX;sorting.y=e.clientY;
-  if(!sorting.active&&Math.hypot(sorting.x-sorting.startX,sorting.y-sorting.startY)>4){
+  if(!sorting.active&&Math.hypot(sorting.x-sorting.startX,sorting.y-sorting.startY)>2){
    clearTimeout(pressTimer);activateSort();
   }
   if(sorting?.active){e.preventDefault();updateTarget();}
  });
- grid.addEventListener('pointerup',e=>{if(e.pointerId===sorting?.pointerId){updateTarget();finishSort(true);}});
+ grid.addEventListener('pointerup',e=>{if(e.pointerId===sorting?.pointerId){sorting.x=e.clientX;sorting.y=e.clientY;updateTarget();finishSort(true);}});
  grid.addEventListener('pointercancel',()=>finishSort(false));
  grid.addEventListener('lostpointercapture',()=>finishSort(false));
  grid.addEventListener('dragstart',e=>e.preventDefault());
