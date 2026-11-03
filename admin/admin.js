@@ -60,20 +60,24 @@ function renderHello(){helloBlocks();$('#content').innerHTML='<div class="hello-
 function editProject(id){
  const p=data.projects.find(p=>p.id===id);
  let images=structuredClone(p?.images||[]), videos=structuredClone(p?.videos||[]), busy=false, alive=true, compressionController=null;
- openModal(`<h2>${p?'编辑项目':'新增项目'}</h2><p>设置项目信息并添加图片，第一张图片自动作为封面。</p><form id="project-form"><div class="project-fields"><label class="field">英文项目名<input name="en" required maxlength="80" value="${esc(p?.en||'')}" placeholder="PROJECT NAME"></label><label class="field">中文项目名<input name="title" required maxlength="80" value="${esc(p?.title||'')}" placeholder="为作品起一个名字"></label><label class="field">项目介绍<textarea name="summary" maxlength="2000">${esc(p?.summary||'')}</textarea></label><label class="field">项目分类<select name="category"><option value="">未分类</option>${data.categories.map(c=>`<option value="${esc(c.id)}" ${p?.categoryIds[0]===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label><div class="upload-heading"><span>项目图片与视频</span><span id="upload-count" aria-live="polite"></span></div><div class="upload-zone" id="upload-zone"><span class="upload-icon" aria-hidden="true">↑</span><strong>将图片或视频拖到这里，或点击选择</strong><span>支持一次多选，也可以分批添加</span><label class="upload-button">选择文件<input id="project-files" type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov" aria-label="选择项目图片或视频（可多选）"></label><small>图片 JPG、PNG、WebP ≤ 10MB；视频 MP4、WebM、MOV ≤ 100MB（100,000,000 字节）。100MB 以内保留原文件；超限视频确认后压缩到约 95MB。</small></div><p class="upload-hint">按住图片拖动到目标位置，松开即可交换，第一张自动作为封面；右上角可删除图片。保存草稿后，点击「发布到网站」更新公开网站。</p><div id="upload-grid" class="upload-grid"></div><span id="sort-status" class="sr-only" role="status" aria-live="polite"></span><div id="video-list"></div><div id="compression-panel" aria-live="polite"></div><p id="form-error" role="alert"></p></div><div class="modal-actions"><button type="button" data-close>取消</button><button type="submit" class="primary" id="project-submit">${p?'保存项目':'创建项目'}</button></div></form>`);
+ openModal(`<h2>${p?'编辑项目':'新增项目'}</h2><p>设置项目信息并添加图片，第一张图片自动作为封面。</p><form id="project-form"><div class="project-fields"><label class="field">英文项目名<input name="en" required maxlength="80" value="${esc(p?.en||'')}" placeholder="PROJECT NAME"></label><label class="field">中文项目名<input name="title" required maxlength="80" value="${esc(p?.title||'')}" placeholder="为作品起一个名字"></label><label class="field">项目介绍<textarea name="summary" maxlength="2000">${esc(p?.summary||'')}</textarea></label><label class="field">项目分类<select name="category"><option value="">未分类</option>${data.categories.map(c=>`<option value="${esc(c.id)}" ${p?.categoryIds[0]===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label><div class="upload-heading"><span>项目图片与视频</span><span id="upload-count" aria-live="polite"></span></div><div class="upload-zone" id="upload-zone"><span class="upload-icon" aria-hidden="true">↑</span><strong>将图片或视频拖到这里，或点击选择</strong><span>支持一次多选，也可以分批添加</span><label class="upload-button">选择文件<input id="project-files" type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov" aria-label="选择项目图片或视频（可多选）"></label><small>图片 JPG、PNG、WebP ≤ 10MB；视频 MP4、WebM、MOV ≤ 100MB（100,000,000 字节）。100MB 以内保留原文件；超限视频确认后压缩到约 95MB。</small></div><p class="upload-hint">按住图片拖动到目标位置，松开即可插入到目标图片前面，其余图片顺移，第一张自动作为封面；右上角可删除图片。保存草稿后，点击「发布到网站」更新公开网站。</p><div id="upload-grid" class="upload-grid"></div><span id="sort-status" class="sr-only" role="status" aria-live="polite"></span><div id="video-list"></div><div id="compression-panel" aria-live="polite"></div><p id="form-error" role="alert"></p></div><div class="modal-actions"><button type="button" data-close>取消</button><button type="submit" class="primary" id="project-submit">${p?'保存项目':'创建项目'}</button></div></form>`);
  const form=$('#project-form'),zone=$('#upload-zone'),input=$('#project-files'),grid=$('#upload-grid'),error=$('#form-error'),submit=$('#project-submit'),modal=$('#modal');
  function renderImages(){
   $('#upload-count').textContent=`已选 ${images.length} 张图片 · ${videos.length} 个视频`;
-  grid.innerHTML=images.map((im,i)=>`<div data-sort-index="${i}" class="upload-tile ${i===0?'is-cover':''}"><div class="upload-tile-toolbar"><span class="cover-label">${i===0?'封面':''}</span><button type="button" data-remove-index="${i}" aria-label="删除图片 ${i+1}：${esc(im.original||im.label||'项目图片')}" class="danger" title="删除图片">×</button></div><img class="sort-handle" draggable="false" tabindex="0" title="长按拖动交换位置；第一张为封面；Alt + 左右方向键调整位置" src="${esc(im.src)}" alt="${esc(im.original||im.label||'项目图片')}" loading="lazy"><span class="upload-filename" title="${esc(im.original||im.label)}">${esc(im.original||im.label||`图片 ${i+1}`)}</span></div>`).join('');
+  grid.innerHTML=images.map((im,i)=>`<div data-sort-index="${i}" class="upload-tile ${i===0?'is-cover':''}"><div class="upload-tile-toolbar"><span class="cover-label">${i===0?'封面':''}</span><button type="button" data-remove-index="${i}" aria-label="删除图片 ${i+1}：${esc(im.original||im.label||'项目图片')}" class="danger" title="删除图片">×</button></div><img class="sort-handle" draggable="false" tabindex="0" title="长按拖动插入到目标图片前面；第一张为封面；Alt + 左右方向键调整位置" src="${esc(im.src)}" alt="${esc(im.original||im.label||'项目图片')}" loading="lazy"><span class="upload-filename" title="${esc(im.original||im.label)}">${esc(im.original||im.label||`图片 ${i+1}`)}</span></div>`).join('');
  }
  grid.onclick=e=>{const b=e.target.closest('[data-remove-index]');if(!b||busy)return;images.splice(Number(b.dataset.removeIndex),1);renderImages();$('#sort-status').textContent=images.length?'已删除图片，第一张为封面':'已删除全部图片，请添加图片';};
  // Pointer-based sorting keeps touch and mouse behavior consistent.
  let sorting=null,pressTimer,scrollFrame,suppressClick=false;
- function swapImages(from,to){
-  if(from===to||from<0||to<0||from>=images.length||to>=images.length)return;
-  [images[from],images[to]]=[images[to],images[from]];
+ function moveImage(from,to,before=true){
+  if(from<0||to<0||from>=images.length||to>=images.length)return from;
+  const destination=before&&from<to?to-1:to;
+  if(from===destination){$('#sort-status').textContent='顺序未改变';return from;}
+  const [image]=images.splice(from,1);
+  images.splice(destination,0,image);
   renderImages();
-  $('#sort-status').textContent=`已交换第 ${from+1} 张与第 ${to+1} 张图片的位置`;
+  $('#sort-status').textContent=`已将第 ${from+1} 张图片移到第 ${destination+1} 位，其余图片依次顺移`;
+  return destination;
  }
  function updateTarget(){
   if(!sorting?.active)return;
@@ -114,7 +118,7 @@ function editProject(id){
   sorting.ghost.removeAttribute('data-sort-index');sorting.ghost.style.width=`${r.width}px`;
   sorting.ghost.querySelectorAll('button').forEach(el=>el.remove());sorting.ghost.querySelectorAll('[tabindex]').forEach(el=>el.tabIndex=-1);
   modal.append(sorting.ghost);sorting.tile.classList.add('is-sorting');grid.classList.add('sorting');
-  $('#sort-status').textContent='已拾起图片，拖到另一张图片上松开即可交换';
+  $('#sort-status').textContent='已拾起图片，拖到目标图片上松开，插入到它的前面';
   updateTarget();scrollFrame=requestAnimationFrame(autoScroll);
  }
  function finishSort(commit){
@@ -123,7 +127,7 @@ function editProject(id){
   const {from,to,active,pointerId,ghost}=sorting;sorting=null;
   if(grid.hasPointerCapture(pointerId))grid.releasePointerCapture(pointerId);
   ghost?.remove();grid.classList.remove('sorting');grid.querySelectorAll('.is-sorting,.sort-target').forEach(el=>el.classList.remove('is-sorting','sort-target'));
-  if(commit&&active&&to>=0&&to!==from)swapImages(from,to);
+  if(commit&&active&&to>=0&&to!==from)moveImage(from,to);
   else if(active)$('#sort-status').textContent='顺序未改变';
   setTimeout(()=>{suppressClick=false;},0);
  }
@@ -151,7 +155,7 @@ function editProject(id){
   if(e.key==='Escape'&&sorting){e.preventDefault();e.stopPropagation();finishSort(false);return;}
   const tile=e.target.closest('[data-sort-index]');if(busy||!tile||!e.altKey||!['ArrowLeft','ArrowRight'].includes(e.key))return;
   e.preventDefault();const from=Number(tile.dataset.sortIndex),to=from+(e.key==='ArrowLeft'?-1:1);
-  if(to>=0&&to<images.length){swapImages(from,to);grid.querySelector(`[data-sort-index="${to}"] .sort-handle`).focus();}
+  if(to>=0&&to<images.length){moveImage(from,to,false);grid.querySelector(`[data-sort-index="${to}"] .sort-handle`).focus();}
  });
  modal.addEventListener('close',()=>finishSort(false),{once:true});
  function renderVideos(){
