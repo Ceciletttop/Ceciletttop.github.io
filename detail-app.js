@@ -206,7 +206,7 @@
     selectMedia(0);
   }
   function createGallery(stage){
-    const gap=()=>phone()?18:28,slides=[],centers=[];let widths=[],period=0,offset=0,target=null,frame=0,lastFrame=0,held=null,ignoreUntil=0,disposed=false,paused=false,expanded=false,returnState=null,momentum=0;
+    const gap=()=>(phone()?18:28)*(expanded?1.2:1),slides=[],centers=[];let widths=[],period=0,offset=0,target=null,frame=0,lastFrame=0,held=null,ignoreUntil=0,disposed=false,paused=false,expanded=false,returnState=null,momentum=0;
     const playButton=root.querySelector('.gallery-play'),countElement=root.querySelector('.media-count'),controls=root.querySelector('.stage-controls');
     const wrap=x=>((x+period/2)%period+period)%period-period/2;
     currentMedia.forEach((m,i)=>{

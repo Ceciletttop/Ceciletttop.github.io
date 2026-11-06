@@ -40,3 +40,7 @@ body.project-view{overflow-x:hidden;overflow-y:auto}
 
 /* Keep the Close control free of rectangular focus outlines during arrow navigation. */
 .detail-actions .close-project:focus,.detail-actions .dialog-close:focus{outline:none}
+
+/* Enlarged gallery: 120% of the original ribbon size. */
+.gallery-modal .media-stage{top:8.2svh;height:81.6svh}
+.gallery-modal .stage-controls,.gallery-modal .gallery-play{bottom:1.5svh}
