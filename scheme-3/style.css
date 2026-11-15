@@ -86,3 +86,8 @@ footer{padding-top:8px;padding-bottom:14px}
 @media(max-width:1100px){.selected-section .work-grid{--work-columns:4}}
 @media(max-width:740px){.selected-section .work-grid{--work-columns:2}}
 @media(max-width:400px){.selected-section .work-grid{--work-columns:1}}
+
+/* Align the visible edge of a leading full-width book title mark. */
+.selected-section .work-caption .work-title-book-mark {
+  text-indent: -.45em;
+}
