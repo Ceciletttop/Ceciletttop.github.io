@@ -46,8 +46,7 @@
     <use href="#glass-title-shape" class="glass-light"/>
     </g></svg></h1>`;}
 
-  function paperTitle(text){return text.toLowerCase().split(' ').map((word,index)=>index&&/^(a|an|the|and|or|of|in|on|to|for)$/.test(word)?word:word.charAt(0).toUpperCase()+word.slice(1)).join(' ');}
-  function paperHTML(p,index){return `<a class="polaroid" href="#project/${p.id}" data-project="${p.id}" aria-label="Open project: ${esc(p.en)} — ${esc(p.title)}" style="--delay:${index*.065}s"><span class="picture"><img src="${p.coverThumb}" alt="${esc(p.title)}" draggable="false" width="400" height="400"></span><span class="paper-name">${esc(paperTitle(p.en))}</span></a>`;}
+  function paperHTML(p,index){return `<a class="polaroid" href="#project/${p.id}" data-project="${p.id}" aria-label="Open project: ${esc(p.en)} — ${esc(p.title)}" style="--delay:${index*.065}s"><span class="picture"><img src="${p.coverThumb}" alt="${esc(p.title)}" draggable="false" width="400" height="400"></span><span class="paper-name">${esc(p.en)}</span></a>`;}
   function renderScene(mode){
     const work=mode==='work';previousScene=mode;
     root.innerHTML=`<section class="home-scene ${work?'work-scene':''}" aria-label="${work?'All projects':'Creative Portfolio'}"><div class="scene-cards" id="home-project-cards">${projects.map(paperHTML).join('')}</div>${titleSVG()}<span class="scene-hint">CLICK TO OPEN · HOLD TO DRAG</span></section>`;
@@ -198,7 +197,7 @@
   }
   function renderProject(p){
     activeProject=p;currentMedia=mediaFor(p);activeIndex=0;
-    root.innerHTML=`<article class="project-scene route-enter" aria-label="${esc(p.title)}"><header class="project-intro"><h1 class="project-title">${esc(p.en.charAt(0).toUpperCase()+p.en.slice(1).toLowerCase())}</h1><div class="project-copy"><p>${esc(p.summary)}</p><div class="project-meta"><span>${esc(p.category)}</span>${p.videos.length?'<span>VIDEO</span>':''}<span>${p.images.length} IMAGES</span></div></div></header><div class="media-stage" aria-label="Project images and videos" tabindex="0"></div><div class="project-controls"><div class="stage-controls"><button class="round-control media-prev" aria-label="Previous media">←</button><span class="media-count" aria-live="polite"></span><button class="round-control media-next" aria-label="Next media">→</button></div><button class="gallery-play" aria-label="Pause project videos">Ⅱ</button></div></article>`;
+    root.innerHTML=`<article class="project-scene route-enter" aria-label="${esc(p.title)}"><header class="project-intro"><h1 class="project-title">${esc(p.en)}</h1><div class="project-copy"><p>${esc(p.summary)}</p><div class="project-meta"><span>${esc(p.category)}</span>${p.videos.length?'<span>VIDEO</span>':''}<span>${p.images.length} IMAGES</span></div></div></header><div class="media-stage" aria-label="Project images and videos" tabindex="0"></div><div class="project-controls"><div class="stage-controls"><button class="round-control media-prev" aria-label="Previous media">←</button><span class="media-count" aria-live="polite"></span><button class="round-control media-next" aria-label="Next media">→</button></div><button class="gallery-play" aria-label="Pause project videos">Ⅱ</button></div></article>`;
     root.querySelector('.media-prev').onclick=()=>selectMedia(activeIndex-1);
     root.querySelector('.media-next').onclick=()=>selectMedia(activeIndex+1);
     gallery=createGallery(root.querySelector('.media-stage'));
